@@ -1,7 +1,8 @@
-#[allow(unused)]
+#![allow(unused)]
+pub mod token;
 
 use color_eyre::eyre::Result;
-use crate::token::{Token, TokenType, lookup};
+use token::{Token, TokenType, lookup};
 
 #[allow(dead_code)]
 #[derive(Debug, Default)]
@@ -31,6 +32,14 @@ impl Lexer {
       }
       self.position = self.read_position;
       self.read_position += 1;
+   }
+
+   fn peek_char(&mut self) -> char {
+      if self.read_position >= self.input.len() {
+         return '\0'
+      } else {
+         return self.input.as_bytes()[self.read_position].into();
+      }
    }
 
    fn read_ident(&mut self) -> &str {
@@ -76,7 +85,28 @@ impl Lexer {
       self.eat_whitespace();
 
       let tok: Token = match self.ch {
-         '=' => Token::new(TokenType::ASSIGN, "="),
+         '=' => {
+            if self.peek_char() == '=' {
+               let ch: char = self.ch;
+               self.read_char();
+               let literal: String = ch.to_string() + &self.ch.to_string();
+               Token::new(TokenType::EQ, literal.as_str()
+            )
+            } else {
+               Token::new(TokenType::ASSIGN, "=")
+            }
+         },
+         '!' => {
+            if self.peek_char() == '=' {
+               let ch: char = self.ch;
+               self.read_char();
+               let literal: String = ch.to_string() + &self.ch.to_string();
+               Token::new(TokenType::NOTEQ, literal.as_str()
+            )
+            } else {
+               Token::new(TokenType::BANG, "!")
+            }
+         },
          ';' => Token::new(TokenType::SEMICOLON, ";"),
          '(' => Token::new(TokenType::LPAREN, "("),
          ')' => Token::new(TokenType::RPAREN, ")"),
@@ -84,6 +114,13 @@ impl Lexer {
          '}' => Token::new(TokenType::RBRACE, "}"),
          ',' => Token::new(TokenType::COMMA, ","),
          '+' => Token::new(TokenType::PLUS, "+"),
+         '-' => Token::new(TokenType::MINUS, "-"),
+         '/' => Token::new(TokenType::SLASH, "/"),
+         '<' => Token::new(TokenType::LT, "<"),
+         '>' => Token::new(TokenType::GT, ">"),
+         '*' => Token::new(TokenType::ASTERISK, "*"),
+
+
          '\0' => Token::new(TokenType::EOF, ""),
 
          _ => {
