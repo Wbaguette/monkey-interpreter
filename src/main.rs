@@ -8,6 +8,8 @@ use std::io::{self, Write};
 use color_eyre::Result;
 
 fn main() -> Result<()> {
+   let _ = color_eyre::install();
+   
    let stdin: io::Stdin = io::stdin();
    let stdout: io::Stdout = io::stdout();
    let reader: io::StdinLock<'_> = stdin.lock();

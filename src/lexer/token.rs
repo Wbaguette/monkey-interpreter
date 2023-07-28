@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use lazy_static::lazy_static;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
    pub token_type: TokenType,
    pub literal: String
@@ -15,8 +15,11 @@ impl Token {
    }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
+   // UNKNOWN: Only a thing when initializing the parser
+   UNKNOWN,
+
    // Operators
    ILLEGAL,
    EOF,
@@ -47,22 +50,6 @@ pub enum TokenType {
    IF,
    ELSE,
    RETURN,
-}
-
-// ALL KEYWORDS SHOULD BE PATTERNED, NOT UNDER _
-impl<'a> Into<TokenType> for &'a TokenType {
-   fn into(self) -> TokenType {
-      match *self {
-         TokenType::FUNCTION => TokenType::FUNCTION,
-         TokenType::LET => TokenType::LET,
-         TokenType::TRUE => TokenType::TRUE,
-         TokenType::FALSE => TokenType::FALSE,
-         TokenType::IF => TokenType::IF,
-         TokenType::ELSE => TokenType::ELSE,
-         TokenType::RETURN => TokenType::RETURN,
-         _ => TokenType::IDENT,
-      }
-   }
 }
 
 lazy_static! {

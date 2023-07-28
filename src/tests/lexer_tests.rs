@@ -25,10 +25,8 @@ impl Test {
 }
 
 #[test]
-fn test_next_token_1() {
+fn test_next_token_1() { 
 
-   let _ = color_eyre::install();
-   
    let input: String = String::from("=+(){},;");
 
    let mut lexer: Lexer = Lexer::new(input);

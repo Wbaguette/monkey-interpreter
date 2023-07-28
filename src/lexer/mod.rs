@@ -127,7 +127,7 @@ impl Lexer {
             if self.is_letter(self.ch) {
                let identifier: &str = self.read_ident();
                let token_type: &TokenType = lookup(identifier);
-               return Ok(Token::new(token_type.into(), identifier))
+               return Ok(Token::new(token_type.clone(), identifier))
             } else if self.is_digit(self.ch) {
                let literal: &str = self.read_num();
                return Ok(Token::new(TokenType::INT, literal))
