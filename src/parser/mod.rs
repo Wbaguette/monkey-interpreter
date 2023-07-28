@@ -4,7 +4,7 @@ pub mod ast;
 
 use std::vec;
 
-use crate::parser::ast::{Program, Identifier, LetStatement, Statement};
+use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
 use color_eyre::Result;
@@ -59,6 +59,12 @@ impl Parser {
                None => None,
             }
          },
+         TokenType::RETURN => {
+            match self.parse_return_statement() {
+               Some(return_stmt) => Some(Box::new(return_stmt)),
+               None => None,
+            }
+         },
          _ => None,
       }
    }
@@ -82,8 +88,22 @@ impl Parser {
       }
       
       // page 40
-      // Value is None for now, change away from Option<>
+      // Value/Expression is None for now, change away from Option<> (after above TODO is solved)
       Some(LetStatement { token: cur_token, name, value: None })
+   }
+
+   fn parse_return_statement(&mut self) -> Option<ReturnStatement> {
+      let cur_token: Token = self.cur_token.clone();
+
+      self.next_token();
+
+      // TODO: We're skipping the expressions until we encounter a semicolon
+      while !self.cur_token_is(TokenType::SEMICOLON) {
+         self.next_token();
+      }
+
+      // Return_value/Expression is None for now, change away from Option<> (after above TODO is solved)
+      Some(ReturnStatement { token: cur_token, return_value: None })
    }
 
    fn cur_token_is(&mut self, token_type: TokenType) -> bool {

@@ -73,7 +73,7 @@ impl Statement for LetStatement {
 
 pub struct ReturnStatement {
    pub token: Token,
-   pub return_value: Box<dyn Expression>,
+   pub return_value: Option<Box<dyn Expression>>,
 }
 
 impl Node for ReturnStatement {

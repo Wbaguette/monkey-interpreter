@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
@@ -111,7 +111,19 @@ fn test_return_statements() {
       panic!("program.statements contains {} statements. Expected 3 statements", program.statements.len())
    }
 
-   
+   for statement in program.statements {
+      if let Some(return_stmt) = statement.as_any().downcast_ref::<ReturnStatement>() {
+      
+         if return_stmt.token_literal() != "return" {
+            panic!("ReturnStatement.token_literal() is {}. Expected: 'return'", return_stmt.token_literal())
+         }
+         
+      } else {
+         panic!("statement is a not a ReturnStatement.")
+      }
+   }
+
+
    
 
 }
