@@ -54,9 +54,9 @@ fn check_parser_errors(parser: &Parser) {
 fn test_let_statements() {
    
    let input: String = String::from(
-   "  let x  5;
-      let  = 10;
-      let 838383;
+   "  let x = 5;
+      let y = 10;
+      let foobar = 838383;
    "
    );
 
