@@ -14,7 +14,7 @@ pub struct Parser {
    lexer: Lexer,
    cur_token: Token,
    peek_token: Token,
-   errors: Vec<String>,
+   pub errors: Vec<String>,
 }
 
 impl Parser {
@@ -23,13 +23,17 @@ impl Parser {
          lexer,
          cur_token: Token::new(TokenType::UNKNOWN, ""),
          peek_token: Token::new(TokenType::UNKNOWN, ""),
-         errors: vec![],
+         errors: Vec::new(),
       };
       p.next_token();
       p.next_token();
 
       p
    }
+
+   pub fn errors(&self) -> &Vec<String> {
+      &self.errors
+   } 
 
    pub fn parse_program(&mut self) -> Result<Program> {
       let mut program: Program = Program {
@@ -62,7 +66,7 @@ impl Parser {
    fn parse_let_statement(&mut self) -> Option<LetStatement> {
       let cur_token: Token = self.cur_token.clone();
 
-      if !self.expect_peek(TokenType::IDENT) { 
+      if !self.expect_peek(TokenType::IDENT) {
          return None; 
       }
 
@@ -93,9 +97,10 @@ impl Parser {
    fn expect_peek(&mut self, token_type: TokenType) -> bool {
       if self.peek_token_is(token_type) {
          self.next_token();
-         true
+         return true;
       } else {
-         false
+         self.peek_error(token_type);
+         return false;
       }
    }
 
@@ -106,7 +111,10 @@ impl Parser {
 
    fn next_token(&mut self) -> Result<()> {
       self.cur_token = self.peek_token.clone();
-      self.peek_token = self.lexer.next_token().unwrap();
+      self.peek_token = match self.lexer.next_token() {
+         Ok(tok) => tok,
+         Err(e) => return Err(e)
+      };
       Ok(())
    }
 

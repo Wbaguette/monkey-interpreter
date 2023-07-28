@@ -36,13 +36,27 @@ fn test_let_statement(statement: &Box<dyn Statement>, name: &str) {
    
 }
 
+fn check_parser_errors(parser: &Parser) {
+   let errors: &Vec<String> = parser.errors();
+
+   if errors.len() == 0 {
+      return;
+   }
+
+   let mut error_msg: String = String::from(format!("Parser has {} error(s). ", errors.len()));
+   for error in errors {
+      error_msg.push_str(format!("\nParser has error: {}", error).as_str())
+   }
+   panic!("{}", error_msg);
+}
+
 #[test]
 fn test_let_statements() {
    
    let input: String = String::from(
-   "  let x = 5;
-      let y = 10;
-      let foobar = 838383;
+   "  let x  5;
+      let  = 10;
+      let 838383;
    "
    );
 
@@ -53,6 +67,8 @@ fn test_let_statements() {
       Ok(program) => program,
       Err(e) => panic!("{}", e),
    }; 
+
+   check_parser_errors(&parser);
 
    if program.statements.len() != 3 {
       panic!("program.statements contains {} statements. Expected 3 statements", program.statements.len())
