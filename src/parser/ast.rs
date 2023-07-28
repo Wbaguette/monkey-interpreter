@@ -45,6 +45,11 @@ impl Expression for Identifier {
    fn expression_node(&self) {}
 }
 
+
+
+
+
+
 pub struct LetStatement {
    pub token: Token,   // this should always be TokenType::LET
    pub name: Identifier,   // LetStatement.name.token_literal() should return the binding value: let foo = 5;   => "foo"
@@ -58,6 +63,26 @@ impl Node for LetStatement {
 }
 
 impl Statement for LetStatement {
+   fn statement_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+
+
+pub struct ReturnStatement {
+   pub token: Token,
+   pub return_value: Box<dyn Expression>,
+}
+
+impl Node for ReturnStatement {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+}
+
+impl Statement for ReturnStatement {
    fn statement_node(&self) {}
    fn as_any(&self) -> &dyn Any {
       self

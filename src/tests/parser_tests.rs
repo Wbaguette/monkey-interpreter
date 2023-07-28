@@ -86,3 +86,32 @@ fn test_let_statements() {
    }
 
 }
+
+#[test]
+fn test_return_statements() {
+   
+   let input: String = String::from(
+   "  return 5;
+      return 10;
+      return 993322;
+   "
+   );
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+
+   check_parser_errors(&parser);
+
+   if program.statements.len() != 3 {
+      panic!("program.statements contains {} statements. Expected 3 statements", program.statements.len())
+   }
+
+   
+   
+
+}
