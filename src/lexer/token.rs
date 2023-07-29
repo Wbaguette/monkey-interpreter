@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use lazy_static::lazy_static;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct Token {
    pub token_type: TokenType,
    pub literal: String
@@ -15,7 +15,7 @@ impl Token {
    }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq, Copy)]
 pub enum TokenType {
    // UNKNOWN: Only a thing when initializing the parser
    UNKNOWN,

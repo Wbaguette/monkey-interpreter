@@ -3,11 +3,28 @@
 pub mod ast;
 
 use std::vec;
+use std::collections::HashMap;
 
 use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
+use crate::parser::ast::{Expression, ExpressionStatement};
 use color_eyre::Result;
+
+type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
+type InfixParseFn = fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
+
+#[derive(Debug)]
+pub enum Precedence {
+   LOWEST = 1,
+   EQUALS,          // ==
+   LESSGREATER,     // < or >
+   SUM,             // +
+   PRODUCT,         // *
+   PREFIX,          // -X or !X
+   CALL,            // myFunction(X)   
+}
+
 
 #[derive(Debug)]
 pub struct Parser {
@@ -15,6 +32,9 @@ pub struct Parser {
    cur_token: Token,
    peek_token: Token,
    pub errors: Vec<String>,
+
+   pub prefix_parse_fns: HashMap<TokenType, PrefixParseFn>,
+   pub infix_parse_fns: HashMap<TokenType, InfixParseFn>,
 }
 
 impl Parser {
@@ -24,11 +44,25 @@ impl Parser {
          cur_token: Token::new(TokenType::UNKNOWN, ""),
          peek_token: Token::new(TokenType::UNKNOWN, ""),
          errors: Vec::new(),
+         prefix_parse_fns: HashMap::new(),
+         infix_parse_fns: HashMap::new(),
       };
+      // Move the jawn forward to be in position to parse
       p.next_token();
       p.next_token();
 
+      // Register some functions for parsing
+      p.register_prefix(TokenType::IDENT, Parser::parse_identifier);
+
       p
+   }
+
+   fn register_prefix(&mut self, token_type: TokenType, func: PrefixParseFn) {
+      self.prefix_parse_fns.insert(token_type, func);
+   }
+
+   fn register_infix(&mut self, token_type: TokenType, func: InfixParseFn) {
+      self.infix_parse_fns.insert(token_type, func);  
    }
 
    pub fn errors(&self) -> &Vec<String> {
@@ -65,7 +99,12 @@ impl Parser {
                None => None,
             }
          },
-         _ => None,
+         _ => {
+            match self.parse_expression_statement() {
+               Some(expr_stmt) => Some(Box::new(expr_stmt)),
+               None => None,
+            }
+         },
       }
    }
 
@@ -104,6 +143,35 @@ impl Parser {
 
       // Return_value/Expression is None for now, change away from Option<> (after above TODO is solved)
       Some(ReturnStatement { token: cur_token, return_value: None })
+   }
+
+   fn parse_expression_statement(&mut self) -> Option<ExpressionStatement> {
+      let expr_stmt: ExpressionStatement = ExpressionStatement {
+         token: self.cur_token.clone(),
+         expression: match self.parse_expression(Precedence::LOWEST) {
+            Some(expr) => Some(expr),
+            None => None,
+         },
+      };
+      
+      if self.peek_token_is(TokenType::SEMICOLON) {
+         self.next_token();
+      }
+
+      Some(expr_stmt)
+   }
+
+   fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<dyn Expression>> {
+      let prefix_fn: &fn(&mut Parser) -> Option<Box<dyn Expression>> = match self.prefix_parse_fns.get(&self.cur_token.token_type) {
+         Some(prefix_fn) => prefix_fn,
+         None => return None,
+      };
+
+      prefix_fn(self)
+   }
+
+   fn parse_identifier(&mut self) -> Option<Box<dyn Expression>> {
+      Some(Box::new(Identifier { token: self.cur_token.clone(), value: self.cur_token.literal.clone() }))
    }
 
    fn cur_token_is(&mut self, token_type: TokenType) -> bool {

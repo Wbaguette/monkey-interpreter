@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
@@ -122,8 +122,76 @@ fn test_return_statements() {
          panic!("statement is a not a ReturnStatement.")
       }
    }
+}
 
+#[test]
+fn test_identifier_expression() {
+   let input: String = String::from("foobar;");
 
-   
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+
+   check_parser_errors(&parser);
+
+   if program.statements.len() != 1 {
+      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+   }
+
+   if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(identifier) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<Identifier>() {
+         if identifier.value != "foobar" {
+            panic!("identifier.value is {}. Expected: 'foobar'", identifier.value)
+         }
+         if identifier.token_literal() != "foobar" {
+            panic!("identifier.token_literal() is {}. Expected 'foobar'", identifier.token_literal())
+         }
+      } else {
+         panic!("expression statement is not an Identifier. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<Identifier>())
+      }
+      
+   } else {
+      panic!("program.statements.get(0) is a not an ExpressionStatement.")
+   }
+}
+
+#[test]
+fn test_integer_literal_expression() {
+   let input: String = String::from("5;");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+
+   check_parser_errors(&parser);
+
+   if program.statements.len() != 1 {
+      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+   }
+
+   if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(int_literal) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<IntegerLiteral>() {
+         if int_literal.value != 5 {
+            panic!("identifier.value is {}. Expected: 5", int_literal.value)
+         }
+         if int_literal.token_literal() != "5" {
+            panic!("identifier.token_literal() is {}. Expected '5'", int_literal.token_literal())
+         }
+      } else {
+         panic!("expression statement is not an IntegerLiteral. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<Identifier>())
+      }
+      
+   } else {
+      panic!("program.statements.get(0) is a not an ExpressionStatement.")
+   }
+
 
 }
