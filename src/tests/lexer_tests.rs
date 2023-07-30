@@ -8,7 +8,6 @@ struct Test {
    expected_tok_type: TokenType,
    expected_literal: String,
 }
-
 impl Test {
    pub fn new(exp_type: TokenType, exp_lit: &str) -> Self {
       Test { expected_tok_type: exp_type, expected_literal: exp_lit.to_string() }

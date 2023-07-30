@@ -5,6 +5,5 @@ pub mod ast_tests;
 #[test]
 fn setup() {
    let _ = color_eyre::install();
-   ()
 }
 

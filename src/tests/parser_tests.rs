@@ -2,19 +2,30 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
 struct IDtest {
    expected_identifier: String,
 }
-
 impl IDtest {
    pub fn new(expected_identifier: &str) -> Self {
       IDtest { expected_identifier: expected_identifier.into() }
    }
 }
+
+struct PrefixTest {
+   pub input: String,
+   pub operator: String,
+   pub int_value: i64,
+}
+impl PrefixTest {
+   pub fn new(input: &str, operator: &str, int_value: i64) -> Self {
+      PrefixTest { input: input.to_string(), operator: operator.to_string(), int_value }
+   }
+}
+
 
 fn test_let_statement(statement: &Box<dyn Statement>, name: &str) {
    if statement.token_literal() != "let" {
@@ -48,6 +59,19 @@ fn check_parser_errors(parser: &Parser) {
       error_msg.push_str(format!("\nParser has error: {}", error).as_str())
    }
    panic!("{}", error_msg);
+}
+
+fn test_integer_literal(integer_literal: &Box<dyn Expression>, value: i64) {
+   if let Some(int_literal) = integer_literal.as_ref().as_any().downcast_ref::<IntegerLiteral>() {
+      if int_literal.value != value {
+         panic!("int_literal.value is {}. Expected: {}", int_literal.value, value)
+      }
+      if int_literal.token_literal() != format!("{}", value) {
+         panic!("int_literal.token_literal() is {}. Expected: {}", int_literal.token_literal(), value)
+      }
+   } else {
+      panic!("integer_literal is not an IntegerLiteral")
+   }
 }
 
 #[test]
@@ -192,6 +216,47 @@ fn test_integer_literal_expression() {
    } else {
       panic!("program.statements.get(0) is a not an ExpressionStatement.")
    }
+}
+
+#[test]
+fn test_parsing_prefix_expressions() {
+   let tests: Vec<PrefixTest> = vec![
+      PrefixTest::new("!5", "!", 5),
+      PrefixTest::new("-15", "-", 15),
+   ];
+
+   for test in tests {
+      let mut lexer: Lexer = Lexer::new(test.input);
+      let mut parser: Parser = Parser::new(lexer);
+   
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+   
+      check_parser_errors(&parser);
+   
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+      }
+
+      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+         if let Some(prefix_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<PrefixExpression>() {
+            if prefix_expr.operator != test.operator {
+               panic!("prefix_expr.operator is {}. Expected: {}", prefix_expr.operator, test.operator)
+            }
+
+            test_integer_literal(prefix_expr.right.as_ref().unwrap(), test.int_value);
+         } else {
+            panic!("expression statement is not a prefix expression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IntegerLiteral>())
+         }
+         
+      } else {
+         panic!("program.statements.get(0) is a not an ExpressionStatement.")
+      }
+
+   }
 
 
+   
 }

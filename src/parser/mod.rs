@@ -11,6 +11,8 @@ use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral};
 use color_eyre::Result;
 
+use self::ast::PrefixExpression;
+
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
 type InfixParseFn = fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
 
@@ -36,7 +38,6 @@ pub struct Parser {
    pub prefix_parse_fns: HashMap<TokenType, PrefixParseFn>,
    pub infix_parse_fns: HashMap<TokenType, InfixParseFn>,
 }
-
 impl Parser {
    pub fn new(lexer: Lexer) -> Self {
       let mut p: Parser = Parser {
@@ -54,8 +55,19 @@ impl Parser {
       // Register some functions for parsing
       p.register_prefix(TokenType::IDENT, Parser::parse_identifier);
       p.register_prefix(TokenType::INT, Parser::parse_integer_literal);
+      p.register_prefix(TokenType::BANG, Parser::parse_prefix_expression);
+      p.register_prefix(TokenType::MINUS, Parser::parse_prefix_expression);
 
       p
+   }
+
+   fn next_token(&mut self) -> Result<()> {
+      self.cur_token = self.peek_token.clone();
+      self.peek_token = match self.lexer.next_token() {
+         Ok(tok) => tok,
+         Err(e) => return Err(e)
+      };
+      Ok(())
    }
 
    fn register_prefix(&mut self, token_type: TokenType, func: PrefixParseFn) {
@@ -165,7 +177,10 @@ impl Parser {
    fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<dyn Expression>> {
       let prefix_fn: &fn(&mut Parser) -> Option<Box<dyn Expression>> = match self.prefix_parse_fns.get(&self.cur_token.token_type) {
          Some(prefix_fn) => prefix_fn,
-         None => return None,
+         None => {
+            self.no_prefix_parse_error(self.cur_token.token_type);
+            return None
+         },
       };
 
       prefix_fn(self)
@@ -188,6 +203,15 @@ impl Parser {
       };
 
       Some(Box::new(IntegerLiteral { token: cur_token, value: val }))
+   }
+
+   fn parse_prefix_expression(&mut self) -> Option<Box<dyn Expression>> {
+      let cur_token: Token = self.cur_token.clone();
+      let operator: String = self.cur_token.literal.clone();
+      
+      self.next_token();
+
+      Some(Box::new(PrefixExpression { token: cur_token, operator, right: self.parse_expression(Precedence::PREFIX) }))
    }
 
    fn cur_token_is(&mut self, token_type: TokenType) -> bool {
@@ -213,14 +237,9 @@ impl Parser {
       self.errors.push(msg);
    }
 
-   fn next_token(&mut self) -> Result<()> {
-      self.cur_token = self.peek_token.clone();
-      self.peek_token = match self.lexer.next_token() {
-         Ok(tok) => tok,
-         Err(e) => return Err(e)
-      };
-      Ok(())
+   fn no_prefix_parse_error(&mut self, token_type: TokenType) {
+      let msg: String = format!("No prefix parse function for {:?} found.", token_type);
+      self.errors.push(msg);
    }
-
 
 }

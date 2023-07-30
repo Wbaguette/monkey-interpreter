@@ -8,7 +8,6 @@ pub struct Token {
    pub token_type: TokenType,
    pub literal: String
 }
-
 impl Token {
    pub fn new(tok_type: TokenType, lit: &str) -> Self {
       Token { token_type: tok_type, literal: lit.to_string() }

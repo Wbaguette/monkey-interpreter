@@ -12,7 +12,6 @@ pub struct Lexer {
    read_position: usize,
    ch: char,
 }
-
 impl Lexer {
    pub fn new(input: String) -> Self {
       let mut l: Lexer = Lexer {
