@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
-use crate::parser::ast::{Expression, ExpressionStatement};
+use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral};
 use color_eyre::Result;
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
@@ -53,6 +53,7 @@ impl Parser {
 
       // Register some functions for parsing
       p.register_prefix(TokenType::IDENT, Parser::parse_identifier);
+      p.register_prefix(TokenType::INT, Parser::parse_integer_literal);
 
       p
    }
@@ -172,6 +173,21 @@ impl Parser {
 
    fn parse_identifier(&mut self) -> Option<Box<dyn Expression>> {
       Some(Box::new(Identifier { token: self.cur_token.clone(), value: self.cur_token.literal.clone() }))
+   }
+
+   fn parse_integer_literal(&mut self) -> Option<Box<dyn Expression>> {
+      let cur_token: Token = self.cur_token.clone();
+
+      let val: i64 = match self.cur_token.literal.parse::<i64>() {
+         Ok(num) => num,
+         Err(e) => {
+            let msg: String = format!("Could not parse {} as i64. Error: {}", self.cur_token.literal, e);
+            self.errors.push(msg);
+            return None;
+         },
+      };
+
+      Some(Box::new(IntegerLiteral { token: cur_token, value: val }))
    }
 
    fn cur_token_is(&mut self, token_type: TokenType) -> bool {

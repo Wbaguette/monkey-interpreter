@@ -186,7 +186,7 @@ fn test_integer_literal_expression() {
             panic!("identifier.token_literal() is {}. Expected '5'", int_literal.token_literal())
          }
       } else {
-         panic!("expression statement is not an IntegerLiteral. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<Identifier>())
+         panic!("expression statement is not an IntegerLiteral. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IntegerLiteral>())
       }
       
    } else {
