@@ -5,7 +5,7 @@ use color_eyre::eyre::Result;
 use token::{Token, TokenType, lookup};
 
 #[allow(dead_code)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Lexer {
    input: String,
    position: usize,

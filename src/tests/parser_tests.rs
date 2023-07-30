@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
@@ -23,6 +23,28 @@ struct PrefixTest {
 impl PrefixTest {
    pub fn new(input: &str, operator: &str, int_value: i64) -> Self {
       PrefixTest { input: input.to_string(), operator: operator.to_string(), int_value }
+   }
+}
+
+struct InfixTest {
+   input: String,
+   left_value: i64,
+   operator: String,
+   right_value: i64,
+}
+impl InfixTest {
+   pub fn new(input: &str, lv: i64, operator: &str, rv: i64) -> Self {
+      InfixTest { input: input.to_string(), left_value: lv, operator: operator.to_string(), right_value: rv }
+   }
+}
+
+struct Test {
+   input: String, 
+   expected: String,
+}
+impl Test {
+   pub fn new(input: &str, expected: &str) -> Self {
+      Test { input: input.to_string(), expected: expected.to_string() }
    }
 }
 
@@ -256,7 +278,76 @@ fn test_parsing_prefix_expressions() {
       }
 
    }
+}
 
+#[test]
+fn test_parsing_infix_expressions() {
+   let tests: Vec<InfixTest> = vec![
+      InfixTest::new("5 + 5", 5, "+", 5),
+      InfixTest::new("5 - 5", 5, "-", 5),
+      InfixTest::new("5 * 5", 5, "*", 5),
+      InfixTest::new("5 / 5", 5, "/", 5),
+      InfixTest::new("5 > 5", 5, ">", 5),
+      InfixTest::new("5 < 5", 5, "<", 5),
+      InfixTest::new("5 == 5", 5, "==", 5),
+      InfixTest::new("5 != 5", 5, "!=", 5),
+   ];
+
+   for test in tests {
+      let mut lexer: Lexer = Lexer::new(test.input);
+      let mut parser: Parser = Parser::new(lexer);
+   
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+   
+      check_parser_errors(&parser);
+   
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+      }
+
+      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+         if let Some(infix_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<InfixExpression>() {
+            test_integer_literal(infix_expr.left.as_ref().unwrap(), test.left_value);
+            if infix_expr.operator != test.operator {
+               panic!("infix_expr.operator is {}. Expected {}", infix_expr.operator, test.operator)
+            }
+            test_integer_literal(infix_expr.right.as_ref().unwrap(), test.right_value);
+         } else {
+            panic!("expression statement is not an infix expression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IntegerLiteral>())
+         }
+         
+      } else {
+         panic!("program.statements.get(0) is a not an ExpressionStatement.")
+      }
+   }
+}  
+
+#[test]
+fn tets_operator_precedence_parsing() {
+   let tests: Vec<Test> = vec![
+      Test::new("-a * b", "((-a) * b)")
 
    
+   ];
+
+   for test in tests {
+      let mut lexer: Lexer = Lexer::new(test.input);
+      let mut parser: Parser = Parser::new(lexer);
+   
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+   
+      check_parser_errors(&parser);
+
+      let actual: String = program.string();
+      if actual != test.expected {
+         panic!("Program string representation is {}. Expected: {}", actual, test.expected);
+      }
+   }
+
 }
