@@ -6,7 +6,7 @@ use std::vec;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression};
+use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral};
@@ -72,6 +72,8 @@ impl Parser {
       p.register_prefix(TokenType::INT, Parser::parse_integer_literal);
       p.register_prefix(TokenType::BANG, Parser::parse_prefix_expression);
       p.register_prefix(TokenType::MINUS, Parser::parse_prefix_expression);
+      p.register_prefix(TokenType::TRUE, Parser::parse_boolean);
+      p.register_prefix(TokenType::FALSE, Parser::parse_boolean);
 
       p.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
       p.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -271,6 +273,13 @@ impl Parser {
       expr.right = self.parse_expression(precedence);
 
       Some(Box::new(expr))
+   }
+
+   fn parse_boolean(&mut self) -> Option<Box<dyn Expression>> {
+      Some(Box::new(Boolean {
+         token: self.cur_token.clone(),
+         value: self.cur_token_is(TokenType::TRUE),
+      }))
    }
 
 
