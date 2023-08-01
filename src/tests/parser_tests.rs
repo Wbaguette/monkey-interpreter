@@ -29,6 +29,18 @@ impl PrefixTest {
    }
 }
 
+struct PrefixTestBool {
+   pub input: String,
+   pub operator: String,
+   pub value: bool,
+}
+impl PrefixTestBool {
+   pub fn new(input: &str, operator: &str, value: bool) -> Self {
+      PrefixTestBool { input: input.to_string(), operator: operator.to_string(), value }
+   }
+}   
+
+
 struct InfixTest {
    input: String,
    left_value: i64,
@@ -316,7 +328,7 @@ fn test_integer_literal_expression() {
 }
 
 #[test]
-fn test_parsing_prefix_expressions() {
+fn test_parsing_prefix_expressions_i64() {
    let tests: Vec<PrefixTest> = vec![
       PrefixTest::new("!5", "!", 5),
       PrefixTest::new("-15", "-", 15),
@@ -344,6 +356,49 @@ fn test_parsing_prefix_expressions() {
             }
 
             test_integer_literal(prefix_expr.right.as_ref().unwrap(), test.int_value);
+         } else {
+            panic!("expression statement is not a prefix expression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IntegerLiteral>())
+         }
+         
+      } else {
+         panic!("program.statements.get(0) is a not an ExpressionStatement.")
+      }
+
+   }
+}
+
+#[test]
+fn test_parsing_prefix_expressions_bool() {
+   let tests: Vec<PrefixTestBool> = vec![
+      PrefixTestBool::new("!true", "!", true),
+      PrefixTestBool::new("!false", "!", false),
+   ];
+
+   for test in tests {
+      let mut lexer: Lexer = Lexer::new(test.input);
+      let mut parser: Parser = Parser::new(lexer);
+   
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+   
+      check_parser_errors(&parser);
+   
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+      }
+
+      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+         if let Some(prefix_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<PrefixExpression>() {
+            if let Some(boolean) = prefix_expr.right.as_ref().unwrap().as_any().downcast_ref::<Boolean>() {
+               if boolean.value != test.value {
+                  panic!("boolean.value is {}. Expected: {}", boolean.value, test.value)
+               }
+            } 
+            if prefix_expr.operator != test.operator {
+               panic!("prefix_expr.operator is {}. Expected: {}", prefix_expr.operator, test.operator)
+            }
          } else {
             panic!("expression statement is not a prefix expression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IntegerLiteral>())
          }
@@ -480,6 +535,11 @@ fn test_operator_precedence_parsing() {
       Test::new("3 > 5 == false", "((3 > 5) == false)"),
       Test::new("3 < 5 == true", "((3 < 5) == true)"),
 
+      Test::new("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+      Test::new("(5 + 5) * 2", "((5 + 5) * 2)"),
+      Test::new("2 / (5 + 5)", "(2 / (5 + 5))"),
+      Test::new("-(5 + 5)", "(-(5 + 5))"),
+      Test::new("!(true == true)", "(!(true == true))"),
    ];
 
    for test in tests {

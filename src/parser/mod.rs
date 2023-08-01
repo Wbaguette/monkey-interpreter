@@ -2,7 +2,6 @@
 
 pub mod ast;
 
-use std::vec;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
@@ -74,6 +73,7 @@ impl Parser {
       p.register_prefix(TokenType::MINUS, Parser::parse_prefix_expression);
       p.register_prefix(TokenType::TRUE, Parser::parse_boolean);
       p.register_prefix(TokenType::FALSE, Parser::parse_boolean);
+      p.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expr);
 
       p.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
       p.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -217,7 +217,10 @@ impl Parser {
          },
       };
 
-      let mut left_exp: Box<dyn Expression> = prefix_fn(self).unwrap();
+      let mut left_exp: Box<dyn Expression> =  match prefix_fn(self) {
+         Some(expr) => expr,
+         None => return None,
+      };
 
       while !self.peek_token_is(TokenType::SEMICOLON) && precedence < self.peek_precedence() {
          let infix_fn: &fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>> = match self.infix_parse_fns.get(&self.peek_token.token_type) {
@@ -270,8 +273,9 @@ impl Parser {
 
       let precedence: Precedence = self.cur_precedence();
       self.next_token();
-      expr.right = self.parse_expression(precedence);
 
+      expr.right = self.parse_expression(precedence);
+       
       Some(Box::new(expr))
    }
 
@@ -280,6 +284,18 @@ impl Parser {
          token: self.cur_token.clone(),
          value: self.cur_token_is(TokenType::TRUE),
       }))
+   }
+
+   fn parse_grouped_expr(&mut self) -> Option<Box<dyn Expression>> {
+      self.next_token();
+
+      let expr: Option<Box<dyn Expression>> = self.parse_expression(Precedence::LOWEST);
+
+      if !self.expect_peek(TokenType::RPAREN) {
+         return None;
+      }
+
+      expr
    }
 
 
