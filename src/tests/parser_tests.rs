@@ -627,15 +627,21 @@ fn test_if_else_expression() {
             panic!("consequence statements[0] is not ExpressionStatement")
          }
 
-         if if_expr.alternative.is_some() {
-            panic!("if_expr.alternative is not None, got {:?}", if_expr.alternative.as_ref().unwrap())
+
+
+         if if_expr.alternative.as_ref().unwrap().statements.len() != 1 {
+            panic!("alternative is not 1 statement: Got {} statements.", if_expr.alternative.as_ref().unwrap().statements.len())
          }
 
+         if let Some(alternative) = if_expr.alternative.as_ref().unwrap().statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+            test_identifier(alternative.expression.as_ref().unwrap(), "y".to_string())
+         } else {
+            panic!("alternative statements[0] is not ExpressionStatement")
+         }
       } else {
          panic!("expression statement is not an IfExpression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IfExpression>())
       }
    } else {
       panic!("program.statements.get(0) is a not an ExpressionStatement.")
    }
-
 }

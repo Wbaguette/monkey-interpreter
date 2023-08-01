@@ -5,11 +5,13 @@ pub mod ast;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean};
+use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean, IfExpression};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral};
 use color_eyre::Result;
+
+use self::ast::BlockStatement;
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
 type InfixParseFn = fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
@@ -74,6 +76,7 @@ impl Parser {
       p.register_prefix(TokenType::TRUE, Parser::parse_boolean);
       p.register_prefix(TokenType::FALSE, Parser::parse_boolean);
       p.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expr);
+      p.register_prefix(TokenType::IF, Parser::parse_if_expression);
 
       p.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
       p.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -297,6 +300,64 @@ impl Parser {
 
       expr
    }
+
+   fn parse_if_expression(&mut self) -> Option<Box<dyn Expression>> {
+      let cur_token: Token = self.cur_token.clone();
+
+      if !self.expect_peek(TokenType::LPAREN) {
+         return None;
+      }
+
+      self.next_token();
+      let condition: Option<Box<dyn Expression>> = self.parse_expression(Precedence::LOWEST);
+
+      if !self.expect_peek(TokenType::RPAREN) {
+         return None;
+      }
+
+      if !self.expect_peek(TokenType::LBRACE) {
+         return None;
+      }
+
+      let consequence: Option<BlockStatement> = self.parse_block_statement();
+
+      // Check for "else" block here
+      let mut alternative: Option<BlockStatement> = None;
+
+      if self.peek_token_is(TokenType::ELSE) {
+         self.next_token();
+         if !self.expect_peek(TokenType::LBRACE) {
+            return None;
+         }
+         alternative = self.parse_block_statement();
+      }
+
+
+      Some(Box::new(IfExpression {
+         token: cur_token,
+         condition,
+         consequence,
+         alternative,              
+      }))
+   }
+
+   fn parse_block_statement(&mut self) -> Option<BlockStatement> {
+      let cur_token: Token = self.cur_token.clone();
+      let mut statements: Vec<Box<dyn Statement>> = vec![];
+
+      self.next_token();
+
+      while !self.cur_token_is(TokenType::RBRACE) && !self.cur_token_is(TokenType::EOF) {
+         let statement: Option<Box<dyn Statement>> = self.parse_statement();
+         if statement.is_some() {
+            statements.push(statement.unwrap())
+         }
+         self.next_token();
+      }
+
+      Some(BlockStatement { token: cur_token, statements })
+   }
+
 
 
 
