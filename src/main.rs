@@ -1,7 +1,7 @@
 mod lexer;
 mod parser;
 mod repl;
-
+mod helper;
 mod tests;
 
 use std::io::{self, Write};

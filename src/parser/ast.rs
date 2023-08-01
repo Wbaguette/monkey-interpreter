@@ -12,6 +12,11 @@ pub trait Statement: Node + Any {
    fn statement_node(&self);
    fn as_any(&self) -> &dyn Any;
 }
+impl std::fmt::Debug for dyn Statement {
+   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+      f.write_str(format!("{}", self.string()).as_str())
+   }
+}
 
 pub trait Expression: Node + Any {
    fn expression_node(&self);
@@ -264,6 +269,67 @@ impl Node for Boolean {
 }
 impl Expression for Boolean {
    fn expression_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+
+
+#[derive(Debug)]
+pub struct IfExpression {
+   pub token: Token,
+   pub condition: Option<Box<dyn Expression>>,
+   pub consequence: Option<BlockStatement>,
+   pub alternative: Option<BlockStatement>,
+}
+impl Node for IfExpression {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      let mut out: String = String::new();
+
+      out.push_str(format!("if {} {}", self.condition.as_ref().unwrap().string(), self.consequence.as_ref().unwrap().string() ).as_str());
+      if self.alternative.is_some() {
+         out.push_str(format!("else {}", self.alternative.as_ref().unwrap().string()).as_str());
+      }
+
+      out
+   }
+}
+impl Expression for IfExpression {
+   fn expression_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+
+
+#[derive(Debug)]
+pub struct BlockStatement {
+   pub token: Token,
+   pub statements: Vec<Box<dyn Statement>>,
+}
+impl Node for BlockStatement {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      let mut out: String = String::new();
+
+      for s in &self.statements {
+         out.push_str(s.string().as_str())
+      }
+
+      out
+   } 
+}
+impl Statement for BlockStatement {
+   fn statement_node(&self) {}
    fn as_any(&self) -> &dyn Any {
       self
    }
