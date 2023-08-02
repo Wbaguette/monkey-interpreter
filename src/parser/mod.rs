@@ -172,14 +172,15 @@ impl Parser {
          return None;
       }
 
-      // TODO: We're skipping the expressions until we encounter a semicolon
-      while !self.cur_token_is(TokenType::SEMICOLON) {
+      self.next_token();
+
+      let value: Option<Box<dyn Expression>> = self.parse_expression(Precedence::LOWEST);
+
+      if self.peek_token_is(TokenType::SEMICOLON) {
          self.next_token();
       }
       
-      // page 40
-      // Value/Expression is None for now, change away from Option<> (after above TODO is solved)
-      Some(LetStatement { token: cur_token, name, value: None })
+      Some(LetStatement { token: cur_token, name, value })
    }
 
    fn parse_return_statement(&mut self) -> Option<ReturnStatement> {
@@ -187,13 +188,13 @@ impl Parser {
 
       self.next_token();
 
-      // TODO: We're skipping the expressions until we encounter a semicolon
-      while !self.cur_token_is(TokenType::SEMICOLON) {
+      let return_value: Option<Box<dyn Expression>> = self.parse_expression(Precedence::LOWEST);
+
+      if self.peek_token_is(TokenType::SEMICOLON) {
          self.next_token();
       }
 
-      // Return_value/Expression is None for now, change away from Option<> (after above TODO is solved)
-      Some(ReturnStatement { token: cur_token, return_value: None })
+      Some(ReturnStatement { token: cur_token, return_value })
    }
 
    fn parse_expression_statement(&mut self) -> Option<ExpressionStatement> {

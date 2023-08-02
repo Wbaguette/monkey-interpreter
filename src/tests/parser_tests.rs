@@ -4,55 +4,78 @@
 use crate::parser::ast::Program;
 use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression};
 use crate::lexer::Lexer;
-use crate::lexer::token::{Token, TokenType};
 use crate::parser::Parser;
 
-use std::any::{Any, TypeId};
-
-
+use color_eyre::owo_colors::OwoColorize;
+use std::any::Any;
 
 
 
 
 // SOME GENERIC STRUCTS FOR HELPER FUNCTIONS AND MORE GENERIC TEST CASES
+// THIS SHIT REMOVED LIKE 100 LINES OF REPEATED CODE...
 
-struct IDtest {
-   expected_identifier: String,
-}
-impl IDtest {
-   pub fn new(expected_identifier: &str) -> Self {
-      IDtest { expected_identifier: expected_identifier.into() }
-   }
-}
+
+
 
 struct PrefixTest<T>
-where T: std::fmt::Debug + Any + crate::helper::TestType 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone
 {
    pub input: String,
    pub operator: String,
    pub value: T,
 }
 impl<T> PrefixTest<T>
-where T: std::fmt::Debug + Any + crate::helper::TestType 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone
 {
    pub fn new(input: &str, operator: &str, value: T) -> Self {
       PrefixTest { input: input.to_string(), operator: operator.to_string(), value }
    }
-}
-struct PrefixTestBool {
-   pub input: String,
-   pub operator: String,
-   pub value: bool,
-}
-impl PrefixTestBool {
-   pub fn new(input: &str, operator: &str, value: bool) -> Self {
-      PrefixTestBool { input: input.to_string(), operator: operator.to_string(), value }
+
+   pub fn test_me(&mut self) {
+      use crate::parser::ast::Program;
+      
+      let mut lexer: Lexer = Lexer::new(self.input.clone());
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+      check_parser_errors(&parser);
+   
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+      }
+
+      let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
+      if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
+         if let Some(prefix_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<PrefixExpression>() {
+            if prefix_expr.operator != self.operator {
+               panic!("prefix_expr.operator is {}. Expected: {}", prefix_expr.operator, self.operator)
+            }
+            
+            if self.value.is_bool() {
+               test_bool_literal(prefix_expr.right.as_ref().unwrap(), self.value.downcast_bool().unwrap())
+            } else if self.value.is_i64() {
+               test_integer_literal(prefix_expr.right.as_ref().unwrap(), self.value.downcast_i64().unwrap())
+            } else {
+               panic!("{}", "Not yet implemented: 
+                  !foobar => Operator: '1', value: Identifier 'foobar'
+               ".bold().bright_yellow())
+            }
+         } else {
+            panic!("expr_stmt.expression is not a PrefixExpression")
+         }
+      } else {
+         panic!("statement is not an ExpressionStatement")
+      }
    }
-}   
+}
+
 
 
 struct InfixTest<T> 
-where T: std::fmt::Debug + Any + crate::helper::TestType, 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
 {
    input: String,
    left_value: T,
@@ -60,12 +83,37 @@ where T: std::fmt::Debug + Any + crate::helper::TestType,
    right_value: T,
 }
 impl<T> InfixTest<T> 
-where T: std::fmt::Debug + Any + crate::helper::TestType, 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
 {
    pub fn new(input: &str, lv: T, operator: &str, rv: T) -> Self {
       InfixTest { input: input.to_string(), left_value: lv, operator: operator.to_string(), right_value: rv }
    }
+
+   pub fn test_me(&mut self) {
+      use crate::parser::ast::Program;
+      
+      let mut lexer: Lexer = Lexer::new(self.input.clone());
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+      check_parser_errors(&parser);
+   
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+      }
+
+      let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
+      if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
+         test_infix_expression(expr_stmt.expression.as_ref().unwrap(), self.left_value.clone(), self.operator.clone(), self.right_value.clone())
+      } else {
+         panic!("statement is not an Expression Statement")
+      }
+   }
 }
+
+
 
 struct Test {
    input: String, 
@@ -75,18 +123,61 @@ impl Test {
    pub fn new(input: &str, expected: &str) -> Self {
       Test { input: input.to_string(), expected: expected.to_string() }
    }
+
+   pub fn test_me(&mut self) {
+      use crate::parser::ast::Program;
+
+      let mut lexer: Lexer = Lexer::new(self.input.clone());
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+      check_parser_errors(&parser);
+
+      let actual: String = program.string();
+      if actual != self.expected {
+         panic!("Program string representation is {}. Expected: {}", actual, self.expected);
+      } 
+   }
 }
+
+
 
 struct BoolTest {
    input: String,
    expected_bool: bool,
-   expected_lit: String,
 }
 impl BoolTest {
-   pub fn new(input: &str, b: bool, lit: &str) -> Self {
-      BoolTest { input: input.to_string(), expected_bool: b, expected_lit: lit.to_string() }
+   pub fn new(input: &str, b: bool) -> Self {
+      BoolTest { input: input.to_string(), expected_bool: b }
+   }
+
+   pub fn test_me(&mut self) {
+      use crate::parser::ast::Program;
+      
+      let mut lexer: Lexer = Lexer::new(self.input.clone());
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+      check_parser_errors(&parser);
+   
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+      }
+
+      let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
+      if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
+         test_bool_literal(expr_stmt.expression.as_ref().unwrap(), self.expected_bool)
+      } else {
+         panic!("statement is not an ExpressionStatement")
+      }
    }
 }
+
+
 
 struct FnParamTest {
    input: String,
@@ -97,17 +188,130 @@ impl FnParamTest {
       let vec: Vec<String> = expected_params.iter().map(|&s| String::from(s)).collect();
       FnParamTest { input: input.to_string(), expected_params: vec }
    }
+
+   pub fn test_me(&mut self) {
+      use crate::parser::ast::Program;
+
+      let mut lexer: Lexer = Lexer::new(self.input.clone());
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      };
+      check_parser_errors(&parser);
+
+      let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
+      if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
+         if let Some(function) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() {
+            if function.params.as_ref().unwrap().len() != self.expected_params.len() {
+               panic!("Length of parameters is wrong: Expected {}. Got {}",
+                  self.expected_params.len(), function.params.as_ref().unwrap().len())
+            }
+            for (i, identifier) in self.expected_params.iter().enumerate() {
+               let p: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(i).unwrap().clone());
+               test_literal_expression(&p, identifier.to_string())
+            }
+         } else {
+            panic!("expr_stmt.expression is not a FunctionLiteral")
+         }
+      } else {
+         panic!("statement is not an ExpressionStatement")
+      }
+   }
+}
+
+
+
+struct LetStatementTest<T>
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
+{
+   input: String,
+   expected_identifier: String,
+   expected_value: T,
+}
+impl<T> LetStatementTest<T> 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
+{
+   pub fn new(input: &str, expected_identifier: &str, expected_value: T) -> Self {
+      LetStatementTest { input: input.to_string(), expected_identifier: expected_identifier.to_string(), expected_value }
+   }
+   
+   pub fn test_me(&mut self) {
+      use crate::parser::ast::Program;
+
+      let mut lexer: Lexer = Lexer::new(self.input.clone());
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      };
+      check_parser_errors(&parser);
+
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected: 1", program.statements.len())
+      }
+
+      let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
+      test_let_statement(statement, &self.expected_identifier);
+
+      if let Some(let_stmt) = statement.as_any().downcast_ref::<LetStatement>() {
+         test_literal_expression(&let_stmt.value.as_ref().unwrap(), self.expected_value.clone())
+      } else {
+         panic!("statement is not a LetStatement")
+      }
+   }
+}
+
+
+
+struct ReturnStatementTest<T>
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
+{
+   input: String,
+   expected_value: T,
+}
+impl<T> ReturnStatementTest<T> 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
+{
+   pub fn new(input: &str, expected_value: T) -> Self {
+      ReturnStatementTest { input: input.to_string(), expected_value }
+   }
+   
+   pub fn test_me(&mut self) {
+      use crate::parser::ast::Program;
+
+      let mut lexer: Lexer = Lexer::new(self.input.clone());
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      };
+      check_parser_errors(&parser);
+
+      if program.statements.len() != 1 {
+         panic!("program.statements contains {} statements. Expected: 1", program.statements.len())
+      }
+
+      let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
+      if let Some(return_stmt) = statement.as_any().downcast_ref::<ReturnStatement>() {
+         if return_stmt.token_literal() != "return" {
+            panic!("return_stmt.token_literal() is not 'return'")
+         }
+
+         test_literal_expression(&return_stmt.return_value.as_ref().unwrap(), self.expected_value.clone())
+      } else {
+         panic!("statement is not a ReturnStatement")
+      }
+   }
 }
 
 
 
 
-
-
-
-
-
 // GENERIC HELPER FUNCTIONS THAT MAKE THIS LIKE HUNDREDS OF LINES LESS
+
+
+
 
 fn test_let_statement(statement: &Box<dyn Statement>, name: &str) {
    if statement.token_literal() != "let" {
@@ -226,74 +430,21 @@ fn test_bool_literal(expr: &Box<dyn Expression>, value: bool) {
 
 #[test]
 fn test_let_statements() {
-   
-   let input: String = String::from(
-   "  let x = 5;
-      let y = 10;
-      let foobar = 838383;
-   "
-   );
-
-   let mut lexer: Lexer = Lexer::new(input);
-   let mut parser: Parser = Parser::new(lexer);
-   let program: Program = match parser.parse_program() {
-      Ok(program) => program,
-      Err(e) => panic!("{}", e),
-   }; 
-
-   check_parser_errors(&parser);
-
-   if program.statements.len() != 3 {
-      panic!("program.statements contains {} statements. Expected 3 statements", program.statements.len())
-   }
-
-   let tests: Vec<IDtest> = vec![
-      IDtest::new("x"),
-      IDtest::new("y"),
-      IDtest::new("foobar"),
-   ];
-
-   for (idx, test) in tests.iter().enumerate() {
-      let statement: &Box<dyn Statement> = program.statements.get(idx).unwrap();
-      test_let_statement(statement, &test.expected_identifier)
-   }
-
+   LetStatementTest::new("let x = 5;", "x", 5).test_me();
+   LetStatementTest::new("let y = true;", "y", true).test_me();
+   LetStatementTest::new("let foobar = y;", "foobar", "y".to_string()).test_me();
 }
 
 #[test]
 fn test_return_statements() {
-   
-   let input: String = String::from(
-   "  return 5;
-      return 10;
-      return 993322;
-   "
-   );
+   ReturnStatementTest::new("return 5;", 5).test_me();
+   ReturnStatementTest::new("return 10;", 10).test_me();
+   ReturnStatementTest::new("return 993322;", 993322).test_me();
 
-   let mut lexer: Lexer = Lexer::new(input);
-   let mut parser: Parser = Parser::new(lexer);
-   let program: Program = match parser.parse_program() {
-      Ok(program) => program,
-      Err(e) => panic!("{}", e),
-   }; 
+   ReturnStatementTest::new("return true;", true).test_me();
+   ReturnStatementTest::new("return false;", false).test_me();
 
-   check_parser_errors(&parser);
-
-   if program.statements.len() != 3 {
-      panic!("program.statements contains {} statements. Expected 3 statements", program.statements.len())
-   }
-
-   for statement in program.statements {
-      if let Some(return_stmt) = statement.as_any().downcast_ref::<ReturnStatement>() {
-      
-         if return_stmt.token_literal() != "return" {
-            panic!("ReturnStatement.token_literal() is {}. Expected: 'return'", return_stmt.token_literal())
-         }
-         
-      } else {
-         panic!("statement is a not a ReturnStatement.")
-      }
-   }
+   ReturnStatementTest::new("return foobar;", "foobar".to_string()).test_me();
 }
 
 #[test]
@@ -345,220 +496,67 @@ fn test_integer_literal_expression() {
 }
 
 #[test]
-fn test_parsing_prefix_expressions_i64() {
-   let tests: Vec<PrefixTest<i64>> = vec![
-      PrefixTest::new("!5", "!", 5),
-      PrefixTest::new("-15", "-", 15),
-   ];
+fn test_parsing_prefix_expressions() {
+   PrefixTest::new("!5", "!", 5).test_me();
+   PrefixTest::new("-15", "-", 15).test_me();
 
-   for test in tests {
-      let mut lexer: Lexer = Lexer::new(test.input);
-      let mut parser: Parser = Parser::new(lexer);
-      let program: Program = match parser.parse_program() {
-         Ok(program) => program,
-         Err(e) => panic!("{}", e),
-      }; 
-   
-      check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
+   PrefixTest::new("!true", "!", true).test_me();
+   PrefixTest::new("!false", "!", false).test_me();
 
-      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
-         if let Some(prefix_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<PrefixExpression>() {
-            if prefix_expr.operator != test.operator {
-               panic!("prefix_expr.operator is {}. Expected: {}", prefix_expr.operator, test.operator)
-            }
-            test_integer_literal(prefix_expr.right.as_ref().unwrap(), test.value);
-         } else {
-            panic!("expression statement is not a prefix expression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IntegerLiteral>())
-         }
-      } else {
-         panic!("program.statements.get(0) is a not an ExpressionStatement.")
-      }
-   }
-}
-
-#[test]
-fn test_parsing_prefix_expressions_bool() {
-   let tests: Vec<PrefixTest<bool>> = vec![
-      PrefixTest::new("!true", "!", true),
-      PrefixTest::new("!false", "!", false),
-   ];
-
-   for test in tests {
-      let mut lexer: Lexer = Lexer::new(test.input);
-      let mut parser: Parser = Parser::new(lexer);
-      let program: Program = match parser.parse_program() {
-         Ok(program) => program,
-         Err(e) => panic!("{}", e),
-      }; 
-   
-      check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
-      
-      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
-         if let Some(prefix_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<PrefixExpression>() {
-            test_bool_literal(prefix_expr.right.as_ref().unwrap(), test.value);
-         } else {
-            panic!("expression statement is not a prefix expression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IntegerLiteral>())
-         }
-      } else {
-         panic!("program.statements.get(0) is a not an ExpressionStatement.")
-      }
-
-   }
+   // This intentionally panics if uncommented, 
+   // PrefixTest::new("!foobar", "!", "foobar".to_string()).test_me();
 }
 
 #[test]
 fn test_parsing_infix_expressions() {
-   let tests_i64: Vec<InfixTest<i64>> = vec![
-      InfixTest::new("5 + 5", 5, "+", 5),
-      InfixTest::new("5 - 5", 5, "-", 5),
-      InfixTest::new("5 * 5", 5, "*", 5),
-      InfixTest::new("5 / 5", 5, "/", 5),
-      InfixTest::new("5 > 5", 5, ">", 5),
-      InfixTest::new("5 < 5", 5, "<", 5),
-      InfixTest::new("5 == 5", 5, "==", 5),
-      InfixTest::new("5 != 5", 5, "!=", 5),
-   ];
-
-   for test in tests_i64 {
-      let mut lexer: Lexer = Lexer::new(test.input);
-      let mut parser: Parser = Parser::new(lexer);
-      let program: Program = match parser.parse_program() {
-         Ok(program) => program,
-         Err(e) => panic!("{}", e),
-      }; 
+   InfixTest::new("5 + 5", 5, "+", 5).test_me();
+   InfixTest::new("5 - 5", 5, "-", 5).test_me();
+   InfixTest::new("5 * 5", 5, "*", 5).test_me();
+   InfixTest::new("5 / 5", 5, "/", 5).test_me();
+   InfixTest::new("5 > 5", 5, ">", 5).test_me();
+   InfixTest::new("5 < 5", 5, "<", 5).test_me();
+   InfixTest::new("5 == 5", 5, "==", 5).test_me();
+   InfixTest::new("5 != 5", 5, "!=", 5).test_me();
    
-      check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
-      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
-         test_infix_expression(expr_stmt.expression.as_ref().unwrap(), test.left_value, test.operator, test.right_value)
-      } else {
-         panic!("program.statements.get(0) is a not an ExpressionStatement.")
-      }
-   }
-
-   let tests_bool: Vec<InfixTest<bool>> = vec![
-      InfixTest::new("true == true", true, "==", true),
-      InfixTest::new("true != false", true, "!=", false),
-      InfixTest::new("false == false", false, "==", false),
-   ];
-
-   for test in tests_bool {
-      let mut lexer: Lexer = Lexer::new(test.input);
-      let mut parser: Parser = Parser::new(lexer);
-      let program: Program = match parser.parse_program() {
-         Ok(program) => program,
-         Err(e) => panic!("{}", e),
-      }; 
-   
-      check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
-      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
-         test_infix_expression(expr_stmt.expression.as_ref().unwrap(), test.left_value, test.operator, test.right_value);
-      } else {
-         panic!("program.statements.get(0) is a not an ExpressionStatement.")
-      }
-   }
+   InfixTest::new("true == true", true, "==", true).test_me();
+   InfixTest::new("true != false", true, "!=", false).test_me();
+   InfixTest::new("false == false", false, "==", false).test_me();
 }  
 
 #[test]
 fn test_operator_precedence_parsing() {
-   let tests: Vec<Test> = vec![
-      Test::new("-a * b", "((-a) * b)"),
-      Test::new("!-a", "(!(-a))"),
-      Test::new("a + b + c", "((a + b) + c)"),
-      Test::new("a + b - c", "((a + b) - c)"),
-      Test::new("a * b * c", "((a * b) * c)"),
-      Test::new("a * b / c", "((a * b) / c)"),
-      Test::new("a + b / c", "(a + (b / c))"),
-      Test::new("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
-      Test::new("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"),
-      Test::new("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
-      Test::new("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
-      Test::new("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
-      Test::new("true", "true"),
-      Test::new("false", "false"),
-      Test::new("3 > 5 == false", "((3 > 5) == false)"),
-      Test::new("3 < 5 == true", "((3 < 5) == true)"),
+   Test::new("-a * b", "((-a) * b)").test_me();
+   Test::new("!-a", "(!(-a))").test_me();
+   Test::new("a + b + c", "((a + b) + c)").test_me();
+   Test::new("a + b - c", "((a + b) - c)").test_me();
+   Test::new("a * b * c", "((a * b) * c)").test_me();
+   Test::new("a * b / c", "((a * b) / c)").test_me();
+   Test::new("a + b / c", "(a + (b / c))").test_me();
+   Test::new("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)").test_me();
+   Test::new("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)").test_me();
+   Test::new("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))").test_me();
+   Test::new("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))").test_me();
+   Test::new("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))").test_me();
+   Test::new("true", "true").test_me();
+   Test::new("false", "false").test_me();
+   Test::new("3 > 5 == false", "((3 > 5) == false)").test_me();
+   Test::new("3 < 5 == true", "((3 < 5) == true)").test_me();
 
-      Test::new("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
-      Test::new("(5 + 5) * 2", "((5 + 5) * 2)"),
-      Test::new("2 / (5 + 5)", "(2 / (5 + 5))"),
-      Test::new("-(5 + 5)", "(-(5 + 5))"),
-      Test::new("!(true == true)", "(!(true == true))"),
+   Test::new("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)").test_me();
+   Test::new("(5 + 5) * 2", "((5 + 5) * 2)").test_me();
+   Test::new("2 / (5 + 5)", "(2 / (5 + 5))").test_me();
+   Test::new("-(5 + 5)", "(-(5 + 5))").test_me();
+   Test::new("!(true == true)", "(!(true == true))").test_me();
 
-      Test::new("a + add(b * c) + d", "((a + add((b * c))) + d)"),
-      Test::new("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"),
-      Test::new("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"),
-   ];
-
-   for test in tests {
-      let mut lexer: Lexer = Lexer::new(test.input);
-      let mut parser: Parser = Parser::new(lexer);
-      let program: Program = match parser.parse_program() {
-         Ok(program) => program,
-         Err(e) => panic!("{}", e),
-      }; 
-   
-      check_parser_errors(&parser);
-
-      let actual: String = program.string();
-      if actual != test.expected {
-         panic!("Program string representation is {}. Expected: {}", actual, test.expected);
-      }
-   }
+   Test::new("a + add(b * c) + d", "((a + add((b * c))) + d)").test_me();
+   Test::new("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))").test_me();
+   Test::new("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))").test_me();
 }
 
 #[test]
 fn test_boolean_expression() {
-   let tests: Vec<BoolTest> = vec![
-      BoolTest::new("false;", false, "false"),
-      BoolTest::new("true;", true, "true"),
-   ];
-
-   for test in tests {
-      let mut lexer: Lexer = Lexer::new(test.input);
-      let mut parser: Parser = Parser::new(lexer);
-      let program: Program = match parser.parse_program() {
-         Ok(program) => program,
-         Err(e) => panic!("{}", e),
-      }; 
-   
-      check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
-
-      if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
-         if let Some(boolean) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<Boolean>() {
-            if boolean.value != test.expected_bool {
-               panic!("boolean.value is {}. Expected: {}", boolean.value, test.expected_bool)
-            }
-            if boolean.token_literal() != test.expected_lit {
-               panic!("boolean.token_literal() is {}. Expected {}", boolean.token_literal(), test.expected_lit)
-            }
-         } else {
-            panic!("expression statement is not a Boolean. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<Boolean>())
-         }
-         
-      } else {
-         panic!("program.statements.get(0) is a not an ExpressionStatement.")
-      }
-   }
+   BoolTest::new("false;", false).test_me();
+   BoolTest::new("true;", true).test_me();
 }
 
 #[test]
@@ -595,7 +593,6 @@ fn test_if_expression() {
          if if_expr.alternative.is_some() {
             panic!("if_expr.alternative is not None, got {:?}", if_expr.alternative.as_ref().unwrap())
          }
-
       } else {
          panic!("expression statement is not an IfExpression. \nGot: {:?}", expr_stmt.as_any().downcast_ref::<IfExpression>())
       }
@@ -604,7 +601,6 @@ fn test_if_expression() {
    }
 }
 
-// TODO: Implement this 
 #[test]
 fn test_if_else_expression() {
    let input: String = String::from("if (x < y) { x } else { y }");
@@ -703,40 +699,9 @@ fn test_function_literal_parsing() {
 
 #[test]
 fn test_function_parameter_parsing() {
-   let tests: Vec<FnParamTest> = vec![
-      FnParamTest::new("fn() {};", vec![]),
-      FnParamTest::new("fn(x) {};", vec!["x"]),
-      FnParamTest::new("fn(x, y, z) {};", vec!["x", "y", "z"]),
-   ];
-
-   for test in tests {
-      let mut lexer: Lexer = Lexer::new(test.input);
-      let mut parser: Parser = Parser::new(lexer);
-      let program: Program = match parser.parse_program() {
-         Ok(program) => program,
-         Err(e) => panic!("{}", e),
-      }; 
-
-      check_parser_errors(&parser);
-
-      if let Some(expr_stmt) = program.statements.get(0).as_ref().unwrap().as_any().downcast_ref::<ExpressionStatement>() {
-         if let Some(function) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() {
-            if function.params.as_ref().unwrap().len() != test.expected_params.len() {
-               panic!("Length of parameters is wrong: Expected {}. Got {}",
-                  test.expected_params.len(), function.params.as_ref().unwrap().len())
-            }
-            
-            for (i, identifier) in test.expected_params.iter().enumerate() {
-               let p: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(i).unwrap().clone());
-               test_literal_expression(&p, identifier.to_string())
-            }
-         } else {
-            panic!("expr_stmt.expression is not a FunctionLiteral")
-         }
-      } else {
-         panic!("program.statements.get(0) is not an ExpressionStatement.")
-      }
-   }
+   FnParamTest::new("fn() {};", vec![]).test_me();
+   FnParamTest::new("fn(x) {};", vec!["x"]).test_me();
+   FnParamTest::new("fn(x, y, z) {};", vec!["x", "y", "z"]).test_me();
 }
 
 #[test]

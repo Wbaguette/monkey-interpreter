@@ -5,8 +5,8 @@ pub mod ast_tests;
 #[cfg(test)]
 #[ctor::ctor]
 fn setup() {
-   use color_eyre::owo_colors::{OwoColorize, colors::xterm::LightAquamarine};
+   use color_eyre::owo_colors::OwoColorize;
 
    let _ = color_eyre::install();
-   eprintln!("{}", "\nInstalling color_eyre...".bg::<LightAquamarine>().bright_purple().bold());
+   eprintln!("{}", "\nInstalling color_eyre...".bright_purple().bold());
 }
