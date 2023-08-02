@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::Parser;
@@ -39,7 +39,6 @@ where T: std::fmt::Debug + Any + crate::helper::TestType
       PrefixTest { input: input.to_string(), operator: operator.to_string(), value }
    }
 }
-// JUMP: PREFIXBOOL DEF
 struct PrefixTestBool {
    pub input: String,
    pub operator: String,
@@ -89,6 +88,16 @@ impl BoolTest {
    }
 }
 
+struct FnParamTest {
+   input: String,
+   expected_params: Vec<String>,
+}
+impl FnParamTest {
+   pub fn new(input: &str, expected_params: Vec<&str>) -> Self {
+      let vec: Vec<String> = expected_params.iter().map(|&s| String::from(s)).collect();
+      FnParamTest { input: input.to_string(), expected_params: vec }
+   }
+}
 
 
 
@@ -106,18 +115,15 @@ fn test_let_statement(statement: &Box<dyn Statement>, name: &str) {
    }
 
    if let Some(let_stmt) = statement.as_any().downcast_ref::<LetStatement>() {
-      
       if let_stmt.name.value != name.to_string() {
          panic!("LetStatement.name.value is {}. Expected: {}. @ fn test_let_statement", let_stmt.name.value, name)
       }
       if let_stmt.name.token_literal() != name {
          panic!("LetStatement.name.token_literal() is {}. Expected: {}. @ fn test_let_statement", let_stmt.name.token_literal(), name)
       }
-
    } else {
       panic!("statement is a not a LetStatement. @ fn test_let_statement")
    }
-   
 }
 
 fn check_parser_errors(parser: &Parser) {
@@ -159,7 +165,6 @@ fn test_identifier(expr: &Box<dyn Expression>, val: String) {
       panic!("expr is not an Identifier. @ fn test_identifier")
    }
 }
-
 
 fn test_literal_expression<T>(expr: &Box<dyn Expression>, expected: T) 
 where 
@@ -643,5 +648,89 @@ fn test_if_else_expression() {
       }
    } else {
       panic!("program.statements.get(0) is a not an ExpressionStatement.")
+   }
+}
+
+#[test]
+fn test_function_literal_parsing() {
+   let input: String = String::from("fn(x, y) { x + y; }");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+
+   check_parser_errors(&parser);
+
+   if program.statements.len() != 1 {
+      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+   }
+
+   if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(function) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() {
+         if function.params.as_ref().unwrap().len() != 2 {
+            panic!("function.params is {}. Expected: 2", function.params.as_ref().unwrap().len())
+         }
+
+         let p1: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(0).unwrap().clone());
+         let p2: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(1).unwrap().clone());
+
+         test_literal_expression(&p1, "x".to_string());
+         test_literal_expression(&p2, "y".to_string());
+
+         if function.body.as_ref().unwrap().statements.len() != 1 {
+            panic!("function.body.statements.len() is {}. Expected: 1", function.body.as_ref().unwrap().statements.len())
+         }
+
+         if let Some(body_statement) = function.body.as_ref().unwrap().statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+            test_infix_expression(body_statement.expression.as_ref().unwrap(), "x".to_string(), "+".to_string() , "y".to_string())
+         } else {
+            panic!("function body statement is not an ExpressionStatement")
+         }
+      } else {
+         panic!("expr.stmt is not a FunctionLiteral")
+      }
+   } else {
+      panic!("program.statements.get(0) is a not an ExpressionStatement.")
+   }
+}
+
+#[test]
+fn test_function_parameter_parsing() {
+   let tests: Vec<FnParamTest> = vec![
+      FnParamTest::new("fn() {};", vec![]),
+      FnParamTest::new("fn(x) {};", vec!["x"]),
+      FnParamTest::new("fn(x, y, z) {};", vec!["x", "y", "z"]),
+   ];
+
+   for test in tests {
+      let mut lexer: Lexer = Lexer::new(test.input);
+      let mut parser: Parser = Parser::new(lexer);
+      let program: Program = match parser.parse_program() {
+         Ok(program) => program,
+         Err(e) => panic!("{}", e),
+      }; 
+
+      check_parser_errors(&parser);
+
+      if let Some(expr_stmt) = program.statements.get(0).as_ref().unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+         if let Some(function) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() {
+            if function.params.as_ref().unwrap().len() != test.expected_params.len() {
+               panic!("Length of parameters is wrong: Expected {}. Got {}",
+                  test.expected_params.len(), function.params.as_ref().unwrap().len())
+            }
+            
+            for (i, identifier) in test.expected_params.iter().enumerate() {
+               let p: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(i).unwrap().clone());
+               test_literal_expression(&p, identifier.to_string())
+            }
+         } else {
+            panic!("expr_stmt.expression is not a FunctionLiteral")
+         }
+      } else {
+         panic!("program.statements.get(0) is not an ExpressionStatement.")
+      }
    }
 }

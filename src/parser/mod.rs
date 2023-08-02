@@ -11,7 +11,7 @@ use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral};
 use color_eyre::Result;
 
-use self::ast::BlockStatement;
+use self::ast::{BlockStatement, FunctionLiteral};
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
 type InfixParseFn = fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
@@ -77,6 +77,7 @@ impl Parser {
       p.register_prefix(TokenType::FALSE, Parser::parse_boolean);
       p.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expr);
       p.register_prefix(TokenType::IF, Parser::parse_if_expression);
+      p.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
 
       p.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
       p.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -356,6 +357,56 @@ impl Parser {
       }
 
       Some(BlockStatement { token: cur_token, statements })
+   }
+
+   fn parse_function_literal(&mut self) -> Option<Box<dyn Expression>> {
+      let cur_token: Token = self.cur_token.clone();
+
+      if !self.expect_peek(TokenType::LPAREN) {
+         return None;
+      }
+
+      let params: Option<Vec<Identifier>> = self.parse_function_parameters();
+
+      if !self.expect_peek(TokenType::LBRACE) {
+         return None;
+      }
+
+      let body: Option<BlockStatement> = self.parse_block_statement();
+
+      Some(Box::new(FunctionLiteral {
+         token: cur_token,
+         params,
+         body,
+      }))
+   }
+
+   fn parse_function_parameters(&mut self) -> Option<Vec<Identifier>> {
+      let mut identifiers: Vec<Identifier> = vec![];
+
+      if self.peek_token_is(TokenType::RPAREN) {
+         self.next_token();
+         return Some(identifiers);        // If we instantly see a RPAREN, then there are no parameters to the function: Empty vec is returned
+      }
+
+      self.next_token();
+
+      let ident: Identifier = Identifier { token: self.cur_token.clone(), value: self.cur_token.literal.clone() };
+      identifiers.push(ident);
+
+      while self.peek_token_is(TokenType::COMMA) {
+         self.next_token();
+         self.next_token();     // We see a comma, so skip past the comma and to the next actual token
+         
+         let ident: Identifier = Identifier { token: self.cur_token.clone(), value: self.cur_token.literal.clone() };
+         identifiers.push(ident);
+      }
+
+      if !self.expect_peek(TokenType::RPAREN) {
+         return None;
+      }
+
+      Some(identifiers)
    }
 
 

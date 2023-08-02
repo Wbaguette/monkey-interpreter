@@ -72,6 +72,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f34ba9a9bcb8645379e9de8cb3ecfcf4d1c85ba66d90deb3259206fa5aa193b"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "eyre"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -125,6 +135,7 @@ name = "monkey_interpreter"
 version = "0.1.0"
 dependencies = [
  "color-eyre",
+ "ctor",
  "lazy_static",
 ]
 
@@ -156,6 +167,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c40d25201921e5ff0c862a505c6557ea88568a4e3ace775ab55e93f2f4f9d57"
 
 [[package]]
+name = "proc-macro2"
+version = "1.0.66"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18fb31db3f9bddb2ea821cde30a9f70117e3f119938b5ee630b7403aa6e2ead9"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "quote"
+version = "1.0.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50f3b39ccfb720540debaa0164757101c08ecb8d326b15358ce76a62c7e85965"
+dependencies = [
+ "proc-macro2",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -168,6 +197,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "syn"
+version = "2.0.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04361975b3f5e348b2189d8dc55bc942f278b2d482a6a0365de5bdd62d351567"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -221,6 +261,12 @@ dependencies = [
  "thread_local",
  "tracing-core",
 ]
+
+[[package]]
+name = "unicode-ident"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "301abaae475aa91687eb82514b328ab47a211a533026cb25fc3e519b86adfc3c"
 
 [[package]]
 name = "valuable"

@@ -25,7 +25,6 @@ impl Test {
 
 #[test]
 fn test_next_token_1() { 
-
    let input: String = String::from("=+(){},;");
 
    let mut lexer: Lexer = Lexer::new(input);
@@ -50,7 +49,6 @@ fn test_next_token_1() {
 
 #[test]
 fn test_next_token_2() {
-   
    let input: String = String::from(
    "  let five = 5;
       let ten = 10;
@@ -115,7 +113,6 @@ fn test_next_token_2() {
 
 #[test]
 fn test_next_token_3() {
-   
    let input: String = String::from(
    "  let five = 5;
       let ten = 10;
@@ -196,7 +193,6 @@ fn test_next_token_3() {
 
 #[test]
 fn test_next_token_4() {
-   
    let input: String = String::from(
    "  let five = 5;
       let ten = 10;
@@ -302,7 +298,6 @@ fn test_next_token_4() {
 
 #[test]
 fn test_next_token_5() {
-   
    let input: String = String::from(
    "  let five = 5;
       let ten = 10;

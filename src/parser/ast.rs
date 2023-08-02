@@ -52,7 +52,7 @@ impl Node for Program {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier {
    pub token: Token,  // this should always be TokenType::IDENT   (binding)
    pub value: String,
@@ -330,6 +330,42 @@ impl Node for BlockStatement {
 }
 impl Statement for BlockStatement {
    fn statement_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+
+
+#[derive(Debug)]
+pub struct FunctionLiteral {
+   pub token: Token,
+   pub params: Option<Vec<Identifier>>,      // Situation: No Params in function => params becomes Some(empty vec), 
+                                             // Situation: Params fuck up/syntax is wrong => params is None
+   pub body: Option<BlockStatement>,
+}
+impl Node for FunctionLiteral {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      let mut out: String = String::new();
+      let mut params_str: Vec<String> = vec![];
+
+      for p in self.params.as_ref().unwrap() {
+         params_str.push(p.string())
+      }
+
+      out.push_str(format!("{}(", self.token_literal()).as_str());
+      out.push_str(params_str.join(", ").as_str());
+      out.push_str(format!("){}", self.body.as_ref().unwrap().string()).as_str());
+      
+      out
+   }
+}
+impl Expression for FunctionLiteral {
+   fn expression_node(&self) {}
    fn as_any(&self) -> &dyn Any {
       self
    }
