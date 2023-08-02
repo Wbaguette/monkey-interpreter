@@ -5,13 +5,11 @@ pub mod ast;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean, IfExpression};
+use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean, IfExpression, BlockStatement, FunctionLiteral, CallExpression};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral};
 use color_eyre::Result;
-
-use self::ast::{BlockStatement, FunctionLiteral};
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
 type InfixParseFn = fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
@@ -38,6 +36,7 @@ lazy_static! {
       map.insert(TokenType::MINUS, Precedence::SUM);
       map.insert(TokenType::SLASH, Precedence::PRODUCT);
       map.insert(TokenType::ASTERISK, Precedence::PRODUCT);
+      map.insert(TokenType::LPAREN, Precedence::CALL);
 
       map
    };
@@ -87,6 +86,7 @@ impl Parser {
       p.register_infix(TokenType::NOTEQ, Parser::parse_infix_expression);
       p.register_infix(TokenType::LT, Parser::parse_infix_expression);
       p.register_infix(TokenType::GT, Parser::parse_infix_expression);
+      p.register_infix(TokenType::LPAREN, Parser::parse_call_expression);
 
       p
    }
@@ -386,7 +386,7 @@ impl Parser {
 
       if self.peek_token_is(TokenType::RPAREN) {
          self.next_token();
-         return Some(identifiers);        // If we instantly see a RPAREN, then there are no parameters to the function: Empty vec is returned
+         return Some(identifiers)        // If we instantly see a RPAREN, then there are no parameters to the function: Empty vec is returned
       }
 
       self.next_token();
@@ -403,12 +403,49 @@ impl Parser {
       }
 
       if !self.expect_peek(TokenType::RPAREN) {
-         return None;
+         return None
       }
 
       Some(identifiers)
    }
 
+   fn parse_call_expression(&mut self, function: Box<dyn Expression>) -> Option<Box<dyn Expression>> {
+      Some(Box::new(CallExpression {
+         token: self.cur_token.clone(),
+         function: Some(function),
+         arguments: self.parse_call_arguments(),
+      }))
+   }
+
+   fn parse_call_arguments(&mut self) -> Option<Vec<Box<dyn Expression>>> {
+      let mut args: Vec<Box<dyn Expression>> = vec![];
+
+      if self.peek_token_is(TokenType::RPAREN) {
+         self.next_token();
+         return Some(args)
+      }
+
+      self.next_token();
+      // This *might* fuck something up when .unwrap(), Oh well
+      args.push(self.parse_expression(Precedence::LOWEST).unwrap());
+      // If it does then just use this...
+      // match self.parse_expression(Precedence::LOWEST) {
+      //    Some(expr) => args.push(expr),
+      //    None => {},
+      // }
+
+      while self.peek_token_is(TokenType::COMMA) {
+         self.next_token();
+         self.next_token();
+         args.push(self.parse_expression(Precedence::LOWEST).unwrap());
+      }
+
+      if !self.expect_peek(TokenType::RPAREN) {
+         return None
+      }
+
+      Some(args)
+   }
 
 
 

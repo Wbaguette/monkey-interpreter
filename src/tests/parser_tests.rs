@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::Parser;
@@ -499,6 +499,10 @@ fn test_operator_precedence_parsing() {
       Test::new("2 / (5 + 5)", "(2 / (5 + 5))"),
       Test::new("-(5 + 5)", "(-(5 + 5))"),
       Test::new("!(true == true)", "(!(true == true))"),
+
+      Test::new("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+      Test::new("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"),
+      Test::new("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"),
    ];
 
    for test in tests {
@@ -732,5 +736,40 @@ fn test_function_parameter_parsing() {
       } else {
          panic!("program.statements.get(0) is not an ExpressionStatement.")
       }
+   }
+}
+
+#[test]
+fn test_call_expression_parsing() {
+   let input: String = String::from("add(1, 2 * 3, 4 + 5);");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+
+   check_parser_errors(&parser);
+
+   if program.statements.len() != 1 {
+      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
+   }
+
+   if let Some(expr_stmt) = program.statements.get(0).as_ref().unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(call_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<CallExpression>() {
+         test_identifier(&call_expr.function.as_ref().unwrap(), "add".to_string());
+         if call_expr.arguments.as_ref().unwrap().len() != 3 {
+            panic!("Wrong length of arguments. Got {}. Expected 3", call_expr.arguments.as_ref().unwrap().len())
+         }
+
+         test_literal_expression(call_expr.arguments.as_ref().unwrap().get(0).unwrap(), 1);
+         test_infix_expression(call_expr.arguments.as_ref().unwrap().get(1).unwrap(), 2, "*".to_string(), 3);
+         test_infix_expression(call_expr.arguments.as_ref().unwrap().get(2).unwrap(), 4, "+".to_string(), 5);
+      } else {
+         panic!("expr_stmt.expression is not a CallExpression")
+      }
+   } else {
+      panic!("program.statements.get(0) is not an ExpressionStatement.")
    }
 }

@@ -370,3 +370,37 @@ impl Expression for FunctionLiteral {
       self
    }
 }
+
+
+
+#[derive(Debug)]
+pub struct CallExpression {
+   pub token: Token,
+   pub function: Option<Box<dyn Expression>>,   // Identifier or FunctionLiteral
+   pub arguments: Option<Vec<Box<dyn Expression>>>, 
+}
+impl Node for CallExpression {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      let mut out: String = String::new();
+      let mut args_str: Vec<String> = vec![];
+
+      for expr in self.arguments.as_ref().unwrap() {
+         args_str.push(expr.string())
+      }
+
+      out.push_str(format!("{}(", self.function.as_ref().unwrap().string()).as_str());
+      out.push_str(format!("{})", args_str.join(", ")).as_str());
+
+      out
+   }
+}
+impl Expression for CallExpression {
+   fn expression_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
