@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression};
 use crate::objects::{Object, Integer, Null, ObjectTypes};
 
 // Use these instead of creating new instances every time...
@@ -29,6 +29,13 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
       return Some(eval_prefix_expression(node_to_eval.operator.clone(), right))
    }
 
+   if node.node_as_any().is::<InfixExpression>() {
+      let node_to_eval: &InfixExpression = node.node_as_any().downcast_ref::<InfixExpression>().unwrap();
+      let left: Box<dyn Object> = eval(Box::new(node_to_eval.left.as_ref().unwrap().as_node())).unwrap();
+      let right: Box<dyn Object> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node())).unwrap();
+      return Some(eval_infix_expression(node_to_eval.operator.clone(), left, right))
+   }
+
    if node.node_as_any().is::<ExpressionStatement>() {
       let node_to_eval: &Box<dyn Expression> = node.node_as_any().downcast_ref::<ExpressionStatement>().unwrap().expression.as_ref().unwrap();
       return eval(Box::new(node_to_eval.as_node()))
@@ -47,6 +54,14 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
 
    None
 }
+
+
+
+
+// Helper eval functions
+
+
+
 
 fn eval_statements(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
    let mut result: Option<Box<dyn Object>> = None;
@@ -96,4 +111,35 @@ fn eval_minus_prefix_expression(right: Box<dyn Object>) -> Box<dyn Object> {
 
    let value: i64 = right.as_any().downcast_ref::<Integer>().unwrap().value;
    Box::new(Integer { value: -value })
+}
+
+fn eval_infix_expression(operator: String, left: Box<dyn Object>, right: Box<dyn Object>) -> Box<dyn Object> {
+   if left.r#type() == ObjectTypes::IntegerObj.to_string() && right.r#type() == ObjectTypes::IntegerObj.to_string() {
+      return eval_integer_infix_expression(operator, left, right)
+   } else if operator == "==" {
+      return native_bool_to_boolean_object(left.inspect() == right.inspect())
+   } else if operator == "!=" {
+      return native_bool_to_boolean_object(left.inspect() != right.inspect())
+   }else {
+      return Box::new(NULL)
+   }
+}
+
+fn eval_integer_infix_expression(operator: String, left: Box<dyn Object>, right: Box<dyn Object>) -> Box<dyn Object> {
+   let left_val: i64 = left.as_any().downcast_ref::<Integer>().unwrap().value;
+   let right_val: i64 = right.as_any().downcast_ref::<Integer>().unwrap().value;
+
+   return match operator.as_str() {
+      "+" => Box::new(Integer { value: left_val + right_val }),
+      "-" => Box::new(Integer { value: left_val - right_val }),
+      "*" => Box::new(Integer { value: left_val * right_val }),
+      "/" => Box::new(Integer { value: left_val / right_val }),
+
+      "<" => native_bool_to_boolean_object(left_val < right_val),
+      ">" => native_bool_to_boolean_object(left_val > right_val),
+      "==" => native_bool_to_boolean_object(left_val == right_val),
+      "!=" => native_bool_to_boolean_object(left_val != right_val),
+
+      _ => Box::new(NULL),
+   }
 }
