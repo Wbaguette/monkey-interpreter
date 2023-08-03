@@ -24,10 +24,7 @@ fn test_string() {
          }),
       ]
    };
-
-   if program.string() != "let myVar = anotherVar;" {
-      panic!("program.string() wrong. Got: {}", program.string())
-   }
+   assert_eq!(program.string(), "let myVar = anotherVar;")
 }
 
 

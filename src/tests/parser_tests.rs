@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression, BlockStatement};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
@@ -42,17 +42,12 @@ where T: std::fmt::Debug + Any + crate::helper::TestType + Clone
          Err(e) => panic!("{}", e),
       }; 
       check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
+      assert_eq!(program.statements.len(), 1);
 
       let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
       if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
          if let Some(prefix_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<PrefixExpression>() {
-            if prefix_expr.operator != self.operator {
-               panic!("prefix_expr.operator is {}. Expected: {}", prefix_expr.operator, self.operator)
-            }
+            assert_eq!(prefix_expr.operator, self.operator);
             
             if self.value.is_bool() {
                test_bool_literal(prefix_expr.right.as_ref().unwrap(), self.value.downcast_bool().unwrap())
@@ -99,11 +94,8 @@ where T: std::fmt::Debug + Any + crate::helper::TestType + Clone,
          Err(e) => panic!("{}", e),
       }; 
       check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
-
+      assert_eq!(program.statements.len(), 1);
+      
       let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
       if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
          test_infix_expression(expr_stmt.expression.as_ref().unwrap(), self.left_value.clone(), self.operator.clone(), self.right_value.clone())
@@ -134,11 +126,7 @@ impl Test {
          Err(e) => panic!("{}", e),
       }; 
       check_parser_errors(&parser);
-
-      let actual: String = program.string();
-      if actual != self.expected {
-         panic!("Program string representation is {}. Expected: {}", actual, self.expected);
-      } 
+      assert_eq!(program.string(), self.expected)
    }
 }
 
@@ -163,11 +151,8 @@ impl BoolTest {
          Err(e) => panic!("{}", e),
       }; 
       check_parser_errors(&parser);
-   
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-      }
-
+      assert_eq!(program.statements.len(), 1);
+      
       let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
       if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
          test_bool_literal(expr_stmt.expression.as_ref().unwrap(), self.expected_bool)
@@ -203,10 +188,8 @@ impl FnParamTest {
       let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
       if let Some(expr_stmt) = statement.as_any().downcast_ref::<ExpressionStatement>() {
          if let Some(function) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() {
-            if function.params.as_ref().unwrap().len() != self.expected_params.len() {
-               panic!("Length of parameters is wrong: Expected {}. Got {}",
-                  self.expected_params.len(), function.params.as_ref().unwrap().len())
-            }
+            assert_eq!(function.params.as_ref().unwrap().len(), self.expected_params.len());
+         
             for (i, identifier) in self.expected_params.iter().enumerate() {
                let p: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(i).unwrap().clone());
                test_literal_expression(&p, identifier.to_string())
@@ -246,10 +229,7 @@ where T: std::fmt::Debug + Any + crate::helper::TestType + Clone,
          Err(e) => panic!("{}", e),
       };
       check_parser_errors(&parser);
-
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected: 1", program.statements.len())
-      }
+      assert_eq!(program.statements.len(), 1);
 
       let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
       test_let_statement(statement, &self.expected_identifier);
@@ -287,17 +267,11 @@ where T: std::fmt::Debug + Any + crate::helper::TestType + Clone,
          Err(e) => panic!("{}", e),
       };
       check_parser_errors(&parser);
-
-      if program.statements.len() != 1 {
-         panic!("program.statements contains {} statements. Expected: 1", program.statements.len())
-      }
+      assert_eq!(program.statements.len(), 1);
 
       let statement: &Box<dyn Statement> = program.statements.get(0).unwrap();
       if let Some(return_stmt) = statement.as_any().downcast_ref::<ReturnStatement>() {
-         if return_stmt.token_literal() != "return" {
-            panic!("return_stmt.token_literal() is not 'return'")
-         }
-
+         assert_eq!(return_stmt.token_literal(), "return");
          test_literal_expression(&return_stmt.return_value.as_ref().unwrap(), self.expected_value.clone())
       } else {
          panic!("statement is not a ReturnStatement")
@@ -314,17 +288,11 @@ where T: std::fmt::Debug + Any + crate::helper::TestType + Clone,
 
 
 fn test_let_statement(statement: &Box<dyn Statement>, name: &str) {
-   if statement.token_literal() != "let" {
-      panic!("statement.token_literal() is {}. Expected 'let'. @ fn test_let_statement", statement.token_literal());
-   }
-
+   assert_eq!(statement.token_literal(), "let");
+   
    if let Some(let_stmt) = statement.as_any().downcast_ref::<LetStatement>() {
-      if let_stmt.name.value != name.to_string() {
-         panic!("LetStatement.name.value is {}. Expected: {}. @ fn test_let_statement", let_stmt.name.value, name)
-      }
-      if let_stmt.name.token_literal() != name {
-         panic!("LetStatement.name.token_literal() is {}. Expected: {}. @ fn test_let_statement", let_stmt.name.token_literal(), name)
-      }
+      assert_eq!(let_stmt.name.value, name.to_string());
+      assert_eq!(let_stmt.name.token_literal(), name)
    } else {
       panic!("statement is a not a LetStatement. @ fn test_let_statement")
    }
@@ -341,17 +309,14 @@ fn check_parser_errors(parser: &Parser) {
    for error in errors {
       error_msg.push_str(format!("\nParser has error: {}", error).as_str())
    }
-   panic!("{}", error_msg);
+   // INTENTIONAL EXPLICIT PANIC 
+   panic!("{}", error_msg)
 }
 
 fn test_integer_literal(integer_literal: &Box<dyn Expression>, value: i64) {
    if let Some(int_literal) = integer_literal.as_ref().as_any().downcast_ref::<IntegerLiteral>() {
-      if int_literal.value != value {
-         panic!("int_literal.value is {}. Expected: {}. @ fn test_integer_literal", int_literal.value, value)
-      }
-      if int_literal.token_literal() != format!("{}", value) {
-         panic!("int_literal.token_literal() is {}. Expected: {}. @ fn test_integer_literal", int_literal.token_literal(), value)
-      }
+      assert_eq!(int_literal.value, value);
+      assert_eq!(int_literal.token_literal(), format!("{}", value))
    } else {
       panic!("integer_literal is not an IntegerLiteral. @ fn test_integer_literal")
    }
@@ -359,12 +324,8 @@ fn test_integer_literal(integer_literal: &Box<dyn Expression>, value: i64) {
 
 fn test_identifier(expr: &Box<dyn Expression>, val: String) {
    if let Some(identifier) = expr.as_any().downcast_ref::<Identifier>() {
-      if identifier.value != val {
-         panic!("identifier.value is {}. Expected {}. @ fn test_identifier", identifier.value, val)
-      }
-      if identifier.token_literal() != val {
-         panic!("identifier.token_literal() is {}. Expected {}. @ fn test_identifier", identifier.token_literal(), val)
-      }
+      assert_eq!(identifier.value, val);
+      assert_eq!(identifier.token_literal(), val)
    } else {
       panic!("expr is not an Identifier. @ fn test_identifier")
    }
@@ -394,9 +355,7 @@ where
 {
    if let Some(op_exp) = expr.as_any().downcast_ref::<InfixExpression>() {
       test_literal_expression(op_exp.left.as_ref().unwrap(), left);
-      if op_exp.operator != op {
-         panic!("op_exp.operator is {}. Expected: {}. @ fn test_infix_expression", op_exp.operator, op)
-      }
+      assert_eq!(op_exp.operator, op);
       test_literal_expression(op_exp.right.as_ref().unwrap(), right)
    } else {
       panic!("expr is not InfixExpression @ fn test_infix_expression")
@@ -405,12 +364,8 @@ where
 
 fn test_bool_literal(expr: &Box<dyn Expression>, value: bool) {
    if let Some(bool_expr) = expr.as_any().downcast_ref::<Boolean>() {
-      if bool_expr.value != value {
-         panic!("bool_expr.value is {}. Expected {}. @ fn test_bool_literal", bool_expr.value, value)
-      }
-      if bool_expr.token_literal() != format!("{value}") {
-         panic!("bool_expr.token_literal() is {}. Expected {}. @ fn test_bool_literal", bool_expr.token_literal(), value)
-      }
+      assert_eq!(bool_expr.value, value);
+      assert_eq!(bool_expr.token_literal(), format!("{}", value))
    } else {
       panic!("expr is not Boolean @ fn test_bool_literal")
    }
@@ -457,13 +412,9 @@ fn test_identifier_expression() {
       Ok(program) => program,
       Err(e) => panic!("{}", e),
    }; 
-
    check_parser_errors(&parser);
-
-   if program.statements.len() != 1 {
-      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-   }
-
+   assert_eq!(program.statements.len(), 1);
+   
    if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
       test_identifier(expr_stmt.expression.as_ref().unwrap(), String::from("foobar"));   
    } else {
@@ -481,12 +432,8 @@ fn test_integer_literal_expression() {
       Ok(program) => program,
       Err(e) => panic!("{}", e),
    }; 
-
    check_parser_errors(&parser);
-
-   if program.statements.len() != 1 {
-      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-   }
+   assert_eq!(program.statements.len(), 1);
 
    if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
       test_integer_literal(expr_stmt.expression.as_ref().unwrap(), 5);   
@@ -569,27 +516,18 @@ fn test_if_expression() {
       Ok(program) => program,
       Err(e) => panic!("{}", e),
    }; 
-
    check_parser_errors(&parser);
-
-   if program.statements.len() != 1 {
-      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-   }
+   assert_eq!(program.statements.len(), 1);
 
    if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
       if let Some(if_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<IfExpression>() {
          test_infix_expression(if_expr.condition.as_ref().unwrap(), "x".to_string(), "<".to_string(), "y".to_string());
-         
-         if if_expr.consequence.as_ref().unwrap().statements.len() != 1 {
-            panic!("consequence is not 1 statement: Got {} statements.", if_expr.consequence.as_ref().unwrap().statements.len())
-         }
-
+         assert_eq!(if_expr.consequence.as_ref().unwrap().statements.len(), 1);
          if let Some(consequence) = if_expr.consequence.as_ref().unwrap().statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
             test_identifier(consequence.expression.as_ref().unwrap(), "x".to_string())
          } else {
             panic!("consequence statements[0] is not ExpressionStatement")
          }
-
          if if_expr.alternative.is_some() {
             panic!("if_expr.alternative is not None, got {:?}", if_expr.alternative.as_ref().unwrap())
          }
@@ -611,33 +549,21 @@ fn test_if_else_expression() {
       Ok(program) => program,
       Err(e) => panic!("{}", e),
    }; 
-
    check_parser_errors(&parser);
-
-   if program.statements.len() != 1 {
-      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-   }
-
+   assert_eq!(program.statements.len(), 1);
+   
    if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
       if let Some(if_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<IfExpression>() {
          test_infix_expression(if_expr.condition.as_ref().unwrap(), "x".to_string(), "<".to_string(), "y".to_string());
-         
-         if if_expr.consequence.as_ref().unwrap().statements.len() != 1 {
-            panic!("consequence is not 1 statement: Got {} statements.", if_expr.consequence.as_ref().unwrap().statements.len())
-         }
-
+      
+         assert_eq!(if_expr.consequence.as_ref().unwrap().statements.len(), 1);   
          if let Some(consequence) = if_expr.consequence.as_ref().unwrap().statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
             test_identifier(consequence.expression.as_ref().unwrap(), "x".to_string())
          } else {
             panic!("consequence statements[0] is not ExpressionStatement")
          }
 
-
-
-         if if_expr.alternative.as_ref().unwrap().statements.len() != 1 {
-            panic!("alternative is not 1 statement: Got {} statements.", if_expr.alternative.as_ref().unwrap().statements.len())
-         }
-
+         assert_eq!(if_expr.alternative.as_ref().unwrap().statements.len(), 1);
          if let Some(alternative) = if_expr.alternative.as_ref().unwrap().statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
             test_identifier(alternative.expression.as_ref().unwrap(), "y".to_string())
          } else {
@@ -661,29 +587,20 @@ fn test_function_literal_parsing() {
       Ok(program) => program,
       Err(e) => panic!("{}", e),
    }; 
-
    check_parser_errors(&parser);
-
-   if program.statements.len() != 1 {
-      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-   }
-
+   assert_eq!(program.statements.len(), 1);
+   
    if let Some(expr_stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
       if let Some(function) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() {
-         if function.params.as_ref().unwrap().len() != 2 {
-            panic!("function.params is {}. Expected: 2", function.params.as_ref().unwrap().len())
-         }
-
+         assert_eq!(function.params.as_ref().unwrap().len(), 2);
+      
          let p1: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(0).unwrap().clone());
          let p2: Box<dyn Expression> = Box::new(function.params.as_ref().unwrap().get(1).unwrap().clone());
 
          test_literal_expression(&p1, "x".to_string());
          test_literal_expression(&p2, "y".to_string());
 
-         if function.body.as_ref().unwrap().statements.len() != 1 {
-            panic!("function.body.statements.len() is {}. Expected: 1", function.body.as_ref().unwrap().statements.len())
-         }
-
+         assert_eq!(function.body.as_ref().unwrap().statements.len(), 1);
          if let Some(body_statement) = function.body.as_ref().unwrap().statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
             test_infix_expression(body_statement.expression.as_ref().unwrap(), "x".to_string(), "+".to_string() , "y".to_string())
          } else {
@@ -714,20 +631,13 @@ fn test_call_expression_parsing() {
       Ok(program) => program,
       Err(e) => panic!("{}", e),
    }; 
-
    check_parser_errors(&parser);
-
-   if program.statements.len() != 1 {
-      panic!("program.statements contains {} statements. Expected 1 statement", program.statements.len())
-   }
-
+   assert_eq!(program.statements.len(), 1);
+   
    if let Some(expr_stmt) = program.statements.get(0).as_ref().unwrap().as_any().downcast_ref::<ExpressionStatement>() {
       if let Some(call_expr) = expr_stmt.expression.as_ref().unwrap().as_any().downcast_ref::<CallExpression>() {
          test_identifier(&call_expr.function.as_ref().unwrap(), "add".to_string());
-         if call_expr.arguments.as_ref().unwrap().len() != 3 {
-            panic!("Wrong length of arguments. Got {}. Expected 3", call_expr.arguments.as_ref().unwrap().len())
-         }
-
+         assert_eq!(call_expr.arguments.as_ref().unwrap().len(), 3);
          test_literal_expression(call_expr.arguments.as_ref().unwrap().get(0).unwrap(), 1);
          test_infix_expression(call_expr.arguments.as_ref().unwrap().get(1).unwrap(), 2, "*".to_string(), 3);
          test_infix_expression(call_expr.arguments.as_ref().unwrap().get(2).unwrap(), 4, "+".to_string(), 5);
