@@ -1,6 +1,7 @@
 pub mod parser_tests;
 pub mod lexer_tests;
 pub mod ast_tests;
+pub mod evaluator_tests;
 
 #[cfg(test)]
 #[ctor::ctor]

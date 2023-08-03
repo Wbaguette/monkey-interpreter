@@ -1,7 +1,11 @@
+// #![feature(trait_upcasting)]
+
 mod lexer;
 mod parser;
 mod repl;
 mod helper;
+mod objects;
+mod evaluator;
 mod tests;
 
 use std::io::{self, Write};
