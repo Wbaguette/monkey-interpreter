@@ -1,25 +1,23 @@
 #![allow(unused)]
 
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression};
 use crate::objects::{Object, Integer};
 
-pub fn eval(node: &dyn Node) -> Option<Box<dyn Object>> {
-   println!("{}", node.string());
-   // Statements
-   match node.node_as_any().downcast_ref::<Program>() {
-      Some(p) => return eval_statements(&p.statements),
-      None => {},
+pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
+
+   if node.node_as_any().is::<Program>() {
+      let statements_to_eval: &Vec<Box<dyn Statement>> = &node.node_as_any().downcast_ref::<Program>().unwrap().statements;
+      return eval_statements(statements_to_eval)
    }
 
-   match node.node_as_any().downcast_ref::<ExpressionStatement>() {
-      Some(ep) => return eval(ep),
-      None => {},
+   if node.node_as_any().is::<ExpressionStatement>() {
+      let node_to_eval: &Box<dyn Expression> = node.node_as_any().downcast_ref::<ExpressionStatement>().unwrap().expression.as_ref().unwrap();
+      return eval(Box::new(node_to_eval.as_node()))
    }
-   
-   // Expressions
-   match node.node_as_any().downcast_ref::<IntegerLiteral>() {
-      Some(il) => return Some(Box::new(Integer { value: il.value })),
-      None => {},
+
+   if node.node_as_any().is::<IntegerLiteral>() {
+      let integer_literal_node = node.node_as_any().downcast_ref::<IntegerLiteral>().unwrap();
+      return Some(Box::new(Integer { value: integer_literal_node.value }))
    }
 
    None
@@ -29,10 +27,9 @@ fn eval_statements(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
    let mut result: Option<Box<dyn Object>> = None;
 
    for stmt in stmts {
-      let thing: &dyn Node = stmt.as_node();
+      let thing: Box<&dyn Node> = Box::new(stmt.as_node());
       result = match eval(thing) {
          Some(value) => {
-            panic!("{:?}", value);
             Some(value)
          },
          None => result,
@@ -42,5 +39,5 @@ fn eval_statements(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
       }
    }
 
-   result
+   return result
 }

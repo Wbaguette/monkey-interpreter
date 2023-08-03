@@ -35,7 +35,6 @@ impl i64Test {
          None => panic!("Evaluated returned None"),
       };
 
-      panic!("Finished recursion");
       test_integer_object(evaluated, self.expected)
    }
 }
@@ -55,14 +54,13 @@ fn test_eval(input: String) -> Option<Box<dyn Object>> {
       Ok(p) => p,
       Err(e) => panic!("{}", e),
    };
-   eval(&program)
+
+   return eval(Box::new(&program));
 }
 
 fn test_integer_object(obj: Box<dyn Object>, expected: i64) {
    if let Some(result) = obj.as_any().downcast_ref::<Integer>() {
-      if result.value != expected {
-         panic!("Integer object has {}. Expected {}.", result.value, expected)
-      }
+      assert_eq!(result.value, expected);
    } else {
       panic!("obj passed is not an Integer object.")
    }

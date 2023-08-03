@@ -7,6 +7,9 @@ pub trait Node {
    fn token_literal(&self) -> &str;
    fn string(&self) -> String;
    fn node_as_any(&self) -> &dyn Any;
+
+   fn is_statement(&self) -> bool;
+   fn is_expression(&self) -> bool;
 }
 
 pub trait Statement: Node + Any {
@@ -60,6 +63,13 @@ impl Node for Program {
    fn node_as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_expression(&self) -> bool {
+      false
+   }
+   fn is_statement(&self) -> bool {
+      false
+   }
 }
 
 
@@ -80,6 +90,13 @@ impl Node for Identifier {
 
    fn node_as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
    }
 }
 impl Expression for Identifier {
@@ -124,6 +141,13 @@ impl Node for LetStatement {
    fn node_as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_expression(&self) -> bool {
+      false
+   }
+   fn is_statement(&self) -> bool {
+      true
+   }
 }
 impl Statement for LetStatement {
    fn statement_node(&self) {}
@@ -163,6 +187,13 @@ impl Node for ReturnStatement {
    fn node_as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_expression(&self) -> bool {
+      false
+   }
+   fn is_statement(&self) -> bool {
+      true
+   }
 }
 impl Statement for ReturnStatement {
    fn statement_node(&self) {}
@@ -197,6 +228,13 @@ impl Node for ExpressionStatement {
    fn node_as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_expression(&self) -> bool {
+      false
+   }
+   fn is_statement(&self) -> bool {
+      true
+   }
 }
 impl Statement for ExpressionStatement {
    fn statement_node(&self) {}
@@ -226,6 +264,13 @@ impl Node for IntegerLiteral {
 
    fn node_as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
    }
 }
 impl Expression for IntegerLiteral {
@@ -261,6 +306,13 @@ impl Node for PrefixExpression {
 
    fn node_as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
    }
 }
 impl Expression for PrefixExpression {
@@ -300,6 +352,13 @@ impl Node for InfixExpression {
    fn node_as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
+   }
 }
 impl Expression for InfixExpression {
    fn expression_node(&self) {}
@@ -329,6 +388,13 @@ impl Node for Boolean {
 
    fn node_as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
    }
 }
 impl Expression for Boolean {
@@ -369,6 +435,13 @@ impl Node for IfExpression {
    fn node_as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
+   }
 }
 impl Expression for IfExpression {
    fn expression_node(&self) {}
@@ -404,6 +477,13 @@ impl Node for BlockStatement {
 
    fn node_as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_expression(&self) -> bool {
+      false
+   }
+   fn is_statement(&self) -> bool {
+      true
    }
 }
 impl Statement for BlockStatement {
@@ -448,6 +528,13 @@ impl Node for FunctionLiteral {
    fn node_as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
+   }
 }
 impl Expression for FunctionLiteral {
    fn expression_node(&self) {}
@@ -488,6 +575,13 @@ impl Node for CallExpression {
 
    fn node_as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_expression(&self) -> bool {
+      true
+   }
+   fn is_statement(&self) -> bool {
+      false
    }
 }
 impl Expression for CallExpression {
