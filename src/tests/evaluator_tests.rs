@@ -1,7 +1,8 @@
 #![allow(unused)]
 
-use crate::objects::Integer;
-use crate::{objects::Object, parser::Parser};
+use crate::objects::{Integer, Boolean, Object};
+
+use crate::parser::Parser;
 use crate::lexer::Lexer;
 use crate::parser::ast::{Program, Node};
 use crate::evaluator::eval;
@@ -34,8 +35,25 @@ impl i64Test {
          Some(obj) => obj,
          None => panic!("Evaluated returned None"),
       };
-
       test_integer_object(evaluated, self.expected)
+   }
+}
+
+struct BoolTest {
+   input: String,
+   expected: bool,
+}
+impl BoolTest {
+   pub fn new(input: &str, expected: bool) -> Self {
+      BoolTest { input: input.to_string(), expected }
+   }
+
+   pub fn test_me(&mut self) {
+      let evaluated: Box<dyn Object> = match test_eval(self.input.clone()) {
+         Some(obj) => obj,
+         None => panic!("Evaluated returned None"),
+      };
+      test_boolean_object(evaluated, self.expected)
    }
 }
 
@@ -66,6 +84,14 @@ fn test_integer_object(obj: Box<dyn Object>, expected: i64) {
    }
 }
 
+fn test_boolean_object(obj: Box<dyn Object>, expected: bool) {
+   if let Some(result) = obj.as_any().downcast_ref::<Boolean>() {
+      assert_eq!(result.value, expected);
+   } else {
+      panic!("obj passed is not a Boolean object.")
+   }
+}
+
 
 
 
@@ -78,4 +104,22 @@ fn test_integer_object(obj: Box<dyn Object>, expected: i64) {
 fn test_eval_integer_expression() {
    i64Test::new("5", 5).test_me();
    i64Test::new("10", 10).test_me();
+   i64Test::new("-5", -5).test_me();
+   i64Test::new("-10", -10).test_me();
+}
+
+#[test]
+fn test_eval_boolean_expression() {
+   BoolTest::new("true", true).test_me();
+   BoolTest::new("false", false).test_me();
+}
+
+#[test]
+fn test_bang_operator() {
+   BoolTest::new("!false", true).test_me();
+   BoolTest::new("!true", false).test_me();
+   BoolTest::new("!5", false).test_me();
+   BoolTest::new("!!5", true).test_me();
+   BoolTest::new("!!true", true).test_me();
+   BoolTest::new("!!false", false).test_me();
 }

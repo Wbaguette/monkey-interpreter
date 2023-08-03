@@ -10,7 +10,7 @@ pub enum ObjectTypes {
    NullObj,
 }
 impl ObjectTypes {
-   fn to_string(&self) -> String {
+   pub fn to_string(&self) -> String {
       return match self {
          Self::IntegerObj => "Integer",
          Self::BooleanObj => "Boolean",
@@ -22,7 +22,7 @@ impl ObjectTypes {
 
 
 type ObjectType = String;
-pub trait Object {
+pub trait Object: Sync {
    fn r#type(&self) -> ObjectType;
    fn inspect(&self) -> String;
    fn as_any(&self) -> &dyn Any;

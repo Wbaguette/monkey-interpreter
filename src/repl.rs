@@ -1,11 +1,11 @@
-#[allow(unused)]
-
 use std::io::{BufRead, Write};
 use color_eyre::owo_colors::OwoColorize;
 
 use crate::lexer::Lexer;
 use crate::parser::Parser;
-use crate::parser::ast::{Program, Node};
+use crate::parser::ast::Program;
+use crate::objects::Object;
+use crate::evaluator;
 
 const PROMPT: &str = ">> ";
 
@@ -34,8 +34,16 @@ pub fn start<R: BufRead, W: Write>(mut reader: R, mut writer: W) {
                print_parser_errors(&mut writer, &parser.errors());
                continue;
             }
+            
+            let evaluated: Option<Box<dyn Object>> = evaluator::eval(Box::new(&program));
+            match evaluated {
+               Some(e) => {
+                  write!(writer, "{}\n", e.inspect()).expect("Failed to write Evaluation")
+               },
+               None => {}
+            }
 
-            write!(writer,"{}\n", program.string()).expect("Failed to write AST");
+            // write!(writer,"{}\n", program.string()).expect("Failed to write AST");
          },
          Err(e) => println!("Error reading input: {}", e),
       }
