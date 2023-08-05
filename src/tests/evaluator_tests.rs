@@ -1,11 +1,12 @@
 #![allow(unused)]
 
-use crate::objects::{Integer, Boolean, Object};
+use std::any::Any;
 
+use crate::objects::{Integer, Boolean, Object, Null};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
 use crate::parser::ast::Program;
-use crate::evaluator::eval;
+use crate::evaluator::{eval, self, NULL};
 
 #[cfg(test)]
 
@@ -31,11 +32,10 @@ impl i64Test {
    }
 
    pub fn test_me(&mut self) {
-      let evaluated: Box<dyn Object> = match test_eval(self.input.clone()) {
-         Some(obj) => obj,
-         None => panic!("Evaluated returned None"),
-      };
-      test_integer_object(evaluated, self.expected)
+      match test_eval(self.input.clone()) {
+         Some(eval) => test_integer_object(eval, self.expected),
+         None => panic!("test_eval returned None")
+      }
    }
 }
 
@@ -49,11 +49,33 @@ impl BoolTest {
    }
 
    pub fn test_me(&mut self) {
-      let evaluated: Box<dyn Object> = match test_eval(self.input.clone()) {
-         Some(obj) => obj,
-         None => panic!("Evaluated returned None"),
-      };
-      test_boolean_object(evaluated, self.expected)
+      match test_eval(self.input.clone()) {
+         Some(eval) => test_boolean_object(eval, self.expected),
+         None => panic!("test_eval returned None")
+      }
+   }
+}
+
+struct IfElseTest {
+   input: String,
+   expected: Option<i64>
+}
+impl IfElseTest {
+   pub fn new(input: &str, expected: Option<i64>) -> Self {
+      IfElseTest { input: input.to_string(), expected }
+   }
+
+   pub fn test_me(&mut self) {
+      match test_eval(self.input.clone()) {
+         Some(eval) => {
+            if self.expected.is_some() {
+               test_integer_object(eval, self.expected.unwrap())
+            } else {
+               test_null_object(eval)
+            }
+         }, 
+         None => panic!("test_eval returned None.")
+      }
    }
 }
 
@@ -76,6 +98,7 @@ fn test_eval(input: String) -> Option<Box<dyn Object>> {
    return eval(Box::new(&program));
 }
 
+
 fn test_integer_object(obj: Box<dyn Object>, expected: i64) {
    if let Some(result) = obj.as_any().downcast_ref::<Integer>() {
       assert_eq!(result.value, expected);
@@ -90,6 +113,11 @@ fn test_boolean_object(obj: Box<dyn Object>, expected: bool) {
    } else {
       panic!("obj passed is not a Boolean object.")
    }
+}
+
+fn test_null_object(obj: Box<dyn Object>) {
+   // This might be iffy with references... But the object passed here should always be a Null object 
+   assert_eq!(&NULL, obj.as_any().downcast_ref::<Null>().unwrap());
 }
 
 
@@ -155,5 +183,11 @@ fn test_bang_operator() {
 
 #[test]
 fn test_if_else_expressions() {
-   // TODO: Page 125,         Struct's Expected will be some Generic T: i64, None, ....
+   IfElseTest::new("if (true) { 10 }", Some(10)).test_me();
+   IfElseTest::new("if (false) { 10 }", None).test_me();
+   IfElseTest::new("if (1) { 10 }", Some(10)).test_me();
+   IfElseTest::new("if (1 < 2) { 10 }", Some(10)).test_me();
+   IfElseTest::new("if (1 > 2) { 10 }", None).test_me();
+   IfElseTest::new("if (1 > 2) { 10 } else { 20 }", Some(20)).test_me();
+   IfElseTest::new("if (1 < 2) { 10 } else { 20 }", Some(10)).test_me();
 }

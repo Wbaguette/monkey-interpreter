@@ -30,10 +30,18 @@ impl std::fmt::Debug for dyn Object {
       f.write_str(format!("{}", self.inspect()).as_str())
    }
 }
+impl PartialEq for dyn Object {
+   fn eq(&self, other: &Self) -> bool {
+      self.r#type() == other.r#type() && self.inspect() == other.inspect()
+   }
+   fn ne(&self, other: &Self) -> bool {
+      self.r#type() != other.r#type() || self.inspect() != other.inspect()
+   }
+}
 
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Integer {
    pub value: i64,
 }
@@ -51,7 +59,7 @@ impl Object for Integer {
    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Boolean {
    pub value: bool,
 }
@@ -69,6 +77,7 @@ impl Object for Boolean {
    }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Null;
 impl Object for Null {
    fn r#type(&self) -> ObjectType {

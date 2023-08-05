@@ -1,5 +1,3 @@
-// #![feature(trait_upcasting)]
-
 mod lexer;
 mod parser;
 mod repl;
