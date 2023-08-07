@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression};
-use crate::objects::{Object, Integer, Null, ObjectTypes};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement};
+use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue};
 
 pub const NULL: Null = Null{};
 const TRUE: crate::objects::Boolean  = crate::objects::Boolean { value: true };
@@ -18,7 +18,7 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
 
    if node.node_as_any().is::<Program>() {
       let statements_to_eval: &Vec<Box<dyn Statement>> = &node.node_as_any().downcast_ref::<Program>().unwrap().statements;
-      return eval_statements(statements_to_eval)
+      return eval_program(statements_to_eval)
    }
 
    if node.node_as_any().is::<PrefixExpression>() {
@@ -39,9 +39,15 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
       return eval(Box::new(node_to_eval.as_node()))
    }
 
+   if node.node_as_any().is::<ReturnStatement>() {
+      let return_value_to_eval: &Box<dyn Expression> = node.node_as_any().downcast_ref::<ReturnStatement>().unwrap().return_value.as_ref().unwrap();
+      let value: Box<dyn Object> = eval(Box::new(return_value_to_eval.as_node())).unwrap();
+      return Some(Box::new(ReturnValue { value }))
+   }
+
    if node.node_as_any().is::<BlockStatement>() {
       let statements_to_eval: &Vec<Box<dyn Statement>> = &node.node_as_any().downcast_ref::<BlockStatement>().unwrap().statements;
-      return eval_statements(statements_to_eval)
+      return eval_block_statement(statements_to_eval)
    }
 
    if node.node_as_any().is::<IfExpression>() {
@@ -60,6 +66,7 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
       return Some(Box::new(Integer { value: integer_literal_node.value }))
    }
 
+   // Hopefully we dont ever get here ^_^
    None
 }
 
@@ -71,23 +78,36 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
 
 
 
-fn eval_statements(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
+fn eval_program(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
    let mut result: Option<Box<dyn Object>> = None;
 
    for stmt in stmts {
       let thing: Box<&dyn Node> = Box::new(stmt.as_node());
       result = match eval(thing) {
-         Some(value) => {
-            Some(value)
-         },
-         None => result,
+         Some(thing) => Some(thing),
+         None => result
       };
+    
       if result.is_some() {
-         break;
+         if let Some(result_value) = result.as_ref().unwrap().as_any().downcast_ref::<ReturnValue>() {
+            let val: &Box<dyn Object> = &result_value.value;
+
+            if val.as_any().is::<Integer>() {
+               return Some(Box::new(*val.as_any().downcast_ref::<Integer>().unwrap()))
+            }
+
+            if val.as_any().is::<crate::objects::Boolean>() {
+               return Some(Box::new(*val.as_any().downcast_ref::<crate::objects::Boolean>().unwrap()))
+            }
+
+            if val.as_any().is::<Null>() {
+               return Some(Box::new(*val.as_any().downcast_ref::<Null>().unwrap()))
+            }
+         }
       }
    }
 
-   return result
+   result
 }
 
 fn eval_prefix_expression(operator: String, right: Box<dyn Object>) -> Box<dyn Object> {
@@ -174,4 +194,24 @@ fn is_truthy(condition: Box<dyn Object>) -> bool {
    }
 
    true
+}
+
+fn eval_block_statement(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
+   let mut result: Option<Box<dyn Object>> = None;
+
+   for stmt in stmts {
+      let thing: Box<&dyn Node> = Box::new(stmt.as_node());
+      result = match eval(thing) {
+         Some(thing) => Some(thing),
+         None => result,
+      };
+    
+      if result.is_some()  {
+         if let Some(result_value) = result.as_ref().unwrap().as_any().downcast_ref::<ReturnValue>() {
+            return result
+         }
+      }
+   }
+
+   result
 }

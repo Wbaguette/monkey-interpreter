@@ -5,7 +5,7 @@ use std::any::Any;
 use crate::objects::{Integer, Boolean, Object, Null};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
-use crate::parser::ast::Program;
+use crate::parser::ast::{Program, Node};
 use crate::evaluator::{eval, self, NULL};
 
 #[cfg(test)]
@@ -95,7 +95,7 @@ fn test_eval(input: String) -> Option<Box<dyn Object>> {
       Err(e) => panic!("{}", e),
    };
 
-   return eval(Box::new(&program));
+   return eval(Box::new(&program))
 }
 
 
@@ -190,4 +190,22 @@ fn test_if_else_expressions() {
    IfElseTest::new("if (1 > 2) { 10 }", None).test_me();
    IfElseTest::new("if (1 > 2) { 10 } else { 20 }", Some(20)).test_me();
    IfElseTest::new("if (1 < 2) { 10 } else { 20 }", Some(10)).test_me();
+}
+
+#[test]
+fn test_return_statements() {
+   i64Test::new("return 10;", 10).test_me();
+   i64Test::new("return 10; 9;", 10).test_me();
+   i64Test::new("return 2 * 5; 9;", 10).test_me();
+   i64Test::new("11; return 2 * 5; 9;", 10).test_me();
+   
+   i64Test::new("
+      if (10 > 1) {
+         if (10 > 1) {
+            return 10;
+         }
+         
+         return 1;
+      }
+      ", 10).test_me();
 }
