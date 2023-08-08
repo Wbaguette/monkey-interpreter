@@ -6,14 +6,16 @@ pub enum ObjectTypes {
    BooleanObj,
    NullObj,
    ReturnValObj,
+   ErrorObj,
 }
 impl ObjectTypes {
    pub fn to_string(&self) -> String {
       return match self {
-         Self::IntegerObj => "Integer",
-         Self::BooleanObj => "Boolean",
+         Self::IntegerObj => "INTEGER",
+         Self::BooleanObj => "BOOLEAN",
          Self::NullObj => "NULL",
-         Self::ReturnValObj => "RETURN_VALUE"
+         Self::ReturnValObj => "RETURN_VALUE",
+         Self::ErrorObj => "ERROR",
       }.to_string()
    }
 }
@@ -23,6 +25,11 @@ pub trait Object {
    fn r#type(&self) -> ObjectType;
    fn inspect(&self) -> String;
    fn as_any(&self) -> &dyn Any;
+}
+impl Debug for dyn Object {
+   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+      f.write_str(self.inspect().as_str())
+   }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]         
@@ -96,5 +103,28 @@ impl Object for ReturnValue {
 impl PartialEq for ReturnValue {
    fn eq(&self, other: &Self) -> bool {
       self.r#type() == other.r#type() && self.inspect() == other.inspect()
+   }
+}
+
+#[derive(Clone, Debug, PartialEq)] 
+pub struct Error {
+   pub message: String,
+}
+impl Error {
+   pub fn new(message: String) -> Self {
+      Error { message }
+   }
+}
+impl Object for Error {
+   fn r#type(&self) -> ObjectType {
+      ObjectTypes::ErrorObj.to_string()
+   }
+
+   fn inspect(&self) -> String {
+      String::from(format!("ERROR: {}", self.message))
+   }
+
+   fn as_any(&self) -> &dyn Any {
+      self
    }
 }

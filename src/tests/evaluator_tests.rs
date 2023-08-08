@@ -2,7 +2,7 @@
 
 use std::any::Any;
 
-use crate::objects::{Integer, Boolean, Object, Null};
+use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
 use crate::parser::ast::{Program, Node};
@@ -31,7 +31,7 @@ impl i64Test {
       i64Test { input: input.to_string(), expected }
    }
 
-   pub fn test_me(&mut self) {
+   pub fn test_me(&self) {
       match test_eval(self.input.clone()) {
          Some(eval) => test_integer_object(eval, self.expected),
          None => panic!("test_eval returned None")
@@ -48,7 +48,7 @@ impl BoolTest {
       BoolTest { input: input.to_string(), expected }
    }
 
-   pub fn test_me(&mut self) {
+   pub fn test_me(&self) {
       match test_eval(self.input.clone()) {
          Some(eval) => test_boolean_object(eval, self.expected),
          None => panic!("test_eval returned None")
@@ -65,7 +65,7 @@ impl IfElseTest {
       IfElseTest { input: input.to_string(), expected }
    }
 
-   pub fn test_me(&mut self) {
+   pub fn test_me(&self) {
       match test_eval(self.input.clone()) {
          Some(eval) => {
             if self.expected.is_some() {
@@ -74,6 +74,29 @@ impl IfElseTest {
                test_null_object(eval)
             }
          }, 
+         None => panic!("test_eval returned None.")
+      }
+   }
+}
+
+struct ErrorMessageTest {
+   input: String,
+   expected_msg: String,
+}
+impl ErrorMessageTest {
+   pub fn new(input: &str, expected_msg: &str) -> Self {
+      ErrorMessageTest { input: input.to_string(), expected_msg: expected_msg.to_string() }
+   }
+
+   pub fn test_me(&self) {
+      match test_eval(self.input.clone()) {
+         Some(eval) => {
+            if let Some(error_object) = eval.as_any().downcast_ref::<Error>() {
+               assert_eq!(self.expected_msg, error_object.message)
+            } else {
+               panic!("No error object returned. Got {:?}", eval)
+            }
+         },
          None => panic!("test_eval returned None.")
       }
    }
@@ -94,7 +117,7 @@ fn test_eval(input: String) -> Option<Box<dyn Object>> {
       Ok(p) => p,
       Err(e) => panic!("{}", e),
    };
-
+   eprintln!("Program String: {}", program.string());
    return eval(Box::new(&program))
 }
 
@@ -204,8 +227,29 @@ fn test_return_statements() {
          if (10 > 1) {
             return 10;
          }
-         
+
          return 1;
       }
       ", 10).test_me();
+}
+
+#[test]
+fn test_error_handling() {
+   ErrorMessageTest::new("5 + true;", "type mismatch: INTEGER + BOOLEAN").test_me();
+   ErrorMessageTest::new("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN").test_me();
+   ErrorMessageTest::new("-true", "unknown operator: -BOOLEAN").test_me();
+   ErrorMessageTest::new("true + false;", "unknown operator: BOOLEAN + BOOLEAN").test_me();
+   ErrorMessageTest::new("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN").test_me();
+   ErrorMessageTest::new("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN").test_me();
+
+   ErrorMessageTest::new("
+      if (10 > 1) {
+         if (10 > 1) {
+            return true + false;
+         }
+
+         return 1;
+      }
+      ",
+      "unknown operator: BOOLEAN + BOOLEAN").test_me();
 }
