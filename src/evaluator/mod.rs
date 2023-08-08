@@ -1,6 +1,7 @@
 #![allow(unused)]
 
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement};
+use crate::objects::environment::Environment;
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier};
 use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error};
 
 pub const NULL: Null = Null{};
@@ -14,16 +15,16 @@ fn native_bool_to_boolean_object(input: bool) -> Box<dyn Object> {
    }
 }
 
-pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
+pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Object>> {
 
    if node.node_as_any().is::<Program>() {
       let statements_to_eval: &Vec<Box<dyn Statement>> = &node.node_as_any().downcast_ref::<Program>().unwrap().statements;
-      return eval_program(statements_to_eval)
+      return eval_program(statements_to_eval, env)
    }
 
    if node.node_as_any().is::<PrefixExpression>() {
       let node_to_eval: &PrefixExpression = node.node_as_any().downcast_ref::<PrefixExpression>().unwrap();
-      let right: Box<dyn Object> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node())).unwrap();
+      let right: Box<dyn Object> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node()), env).unwrap();
       if is_error(Some(&right)) {
          return Some(right)
       }
@@ -32,11 +33,11 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
 
    if node.node_as_any().is::<InfixExpression>() {
       let node_to_eval: &InfixExpression = node.node_as_any().downcast_ref::<InfixExpression>().unwrap();
-      let left: Box<dyn Object> = eval(Box::new(node_to_eval.left.as_ref().unwrap().as_node())).unwrap();
+      let left: Box<dyn Object> = eval(Box::new(node_to_eval.left.as_ref().unwrap().as_node()), env).unwrap();
       if is_error(Some(&left)) {
          return Some(left)
       }
-      let right: Box<dyn Object> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node())).unwrap();
+      let right: Box<dyn Object> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node()), env).unwrap();
       if is_error(Some(&right)) {
          return Some(right)
       }
@@ -45,12 +46,25 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
 
    if node.node_as_any().is::<ExpressionStatement>() {
       let node_to_eval: &Box<dyn Expression> = node.node_as_any().downcast_ref::<ExpressionStatement>().unwrap().expression.as_ref().unwrap();
-      return eval(Box::new(node_to_eval.as_node()))
+      return eval(Box::new(node_to_eval.as_node()), env)
+   }
+
+   if node.node_as_any().is::<Identifier>() {
+      return eval_identifier(node.node_as_any().downcast_ref::<Identifier>().unwrap(), env)
+   }
+
+   if node.node_as_any().is::<LetStatement>() {
+      let node_to_eval: &LetStatement = node.node_as_any().downcast_ref::<LetStatement>().unwrap();
+      let value: Box<dyn Object> = eval(Box::new(node_to_eval.value.as_ref().unwrap().as_node()), env).unwrap();
+      if is_error(Some(&value)) {
+         return Some(value)
+      }
+      env.set(&node_to_eval.name.value, value);
    }
 
    if node.node_as_any().is::<ReturnStatement>() {
       let return_value_to_eval: &Box<dyn Expression> = node.node_as_any().downcast_ref::<ReturnStatement>().unwrap().return_value.as_ref().unwrap();
-      let value: Box<dyn Object> = eval(Box::new(return_value_to_eval.as_node())).unwrap();     // .unwrap()   
+      let value: Box<dyn Object> = eval(Box::new(return_value_to_eval.as_node()), env).unwrap();       
       if is_error(Some(&value)) {
          return Some(value)
       }
@@ -59,12 +73,12 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
 
    if node.node_as_any().is::<BlockStatement>() {
       let statements_to_eval: &Vec<Box<dyn Statement>> = &node.node_as_any().downcast_ref::<BlockStatement>().unwrap().statements;
-      return eval_block_statement(statements_to_eval)
+      return eval_block_statement(statements_to_eval, env)
    }
 
    if node.node_as_any().is::<IfExpression>() {
       let if_expr_to_eval: &IfExpression = node.node_as_any().downcast_ref::<IfExpression>().unwrap();
-      return Some(eval_if_expression(&if_expr_to_eval))
+      return Some(eval_if_expression(&if_expr_to_eval, env))
    }
 
    if node.node_as_any().is::<Boolean>() {
@@ -90,12 +104,12 @@ pub fn eval(node: Box<&dyn Node>) -> Option<Box<dyn Object>> {
 
 
 
-fn eval_program(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
+fn eval_program(stmts: &Vec<Box<dyn Statement>>, env: &mut Environment) -> Option<Box<dyn Object>> {
    let mut result: Option<Box<dyn Object>> = None;
 
    for stmt in stmts {
       let thing: Box<&dyn Node> = Box::new(stmt.as_node());
-      result = eval(thing);
+      result = eval(thing, env);
 
       if result.is_some() {
          if let Some(result_value) = result.as_ref().unwrap().as_any().downcast_ref::<ReturnValue>() {
@@ -187,16 +201,16 @@ fn eval_integer_infix_expression(operator: String, left: Box<dyn Object>, right:
    }
 }
 
-fn eval_if_expression(if_expr: &IfExpression) -> Box<dyn Object> {
-   let condition: Box<dyn Object> = eval(Box::new(if_expr.condition.as_ref().unwrap().as_node())).unwrap();
+fn eval_if_expression(if_expr: &IfExpression, env: &mut Environment) -> Box<dyn Object> {
+   let condition: Box<dyn Object> = eval(Box::new(if_expr.condition.as_ref().unwrap().as_node()), env).unwrap();
    if is_error(Some(&condition)) {
       return condition
    }
-   
+
    if is_truthy(condition) {
-      return eval(Box::new(if_expr.consequence.as_ref().unwrap().as_node())).unwrap()
+      return eval(Box::new(if_expr.consequence.as_ref().unwrap().as_node()), env).unwrap()
    } else if if_expr.alternative.is_some() {
-      return eval(Box::new(if_expr.alternative.as_ref().unwrap().as_node())).unwrap()
+      return eval(Box::new(if_expr.alternative.as_ref().unwrap().as_node()), env).unwrap()
    } else {
       return Box::new(NULL)
    }
@@ -214,12 +228,12 @@ fn is_truthy(condition: Box<dyn Object>) -> bool {
    true
 }
 
-fn eval_block_statement(stmts: &Vec<Box<dyn Statement>>) -> Option<Box<dyn Object>> {
+fn eval_block_statement(stmts: &Vec<Box<dyn Statement>>, env: &mut Environment) -> Option<Box<dyn Object>> {
    let mut result: Option<Box<dyn Object>> = None;
 
    for stmt in stmts {
       let thing: Box<&dyn Node> = Box::new(stmt.as_node());
-      result = eval(thing);
+      result = eval(thing, env);
 
       if result.is_some() {
          if let Some(result_value) = result.as_ref().unwrap().as_any().downcast_ref::<ReturnValue>() {
@@ -239,4 +253,14 @@ fn is_error(obj: Option<&Box<dyn Object>>) -> bool {
       return obj.unwrap().r#type() == ObjectTypes::ErrorObj.to_string()
    }
    false
+}
+
+fn eval_identifier(node: &Identifier, env: &Environment) -> Option<Box<dyn Object>> {
+   return match env.get(&node.value) {
+      Some(object) => {
+         // TODO: Once again a problem is happening because of trying to copy Box<dyn Object>
+         Some(*object)
+      },
+      None => Some(Box::new(Error::new(format!("identifier not found: {}", node.value))))
+   }
 }

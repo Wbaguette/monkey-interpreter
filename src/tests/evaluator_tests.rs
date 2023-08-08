@@ -2,6 +2,7 @@
 
 use std::any::Any;
 
+use crate::objects::environment::Environment;
 use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
@@ -117,8 +118,9 @@ fn test_eval(input: String) -> Option<Box<dyn Object>> {
       Ok(p) => p,
       Err(e) => panic!("{}", e),
    };
-   eprintln!("Program String: {}", program.string());
-   return eval(Box::new(&program))
+   let mut env: Environment = Environment::new();
+
+   return eval(Box::new(&program), &mut env)
 }
 
 
@@ -252,4 +254,14 @@ fn test_error_handling() {
       }
       ",
       "unknown operator: BOOLEAN + BOOLEAN").test_me();
+
+   ErrorMessageTest::new("foobar", "identifier not found: foobar").test_me();
+}
+
+#[test]
+fn test_let_statements() {
+   i64Test::new("let a = 5; a;", 5).test_me();
+   i64Test::new("let a = 5 * 5; a;", 25).test_me();
+   i64Test::new("let a = 5; let b = a; let c = a + b + 5; c;", 15).test_me();
+   i64Test::new("let a = 5; let b = a; let c = a + b + 5; c;", 15).test_me();
 }
