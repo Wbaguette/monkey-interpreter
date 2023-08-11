@@ -33,6 +33,29 @@ impl Debug for dyn Object {
    }
 }
 
+pub fn match_object_to(obj: &Box<dyn Object>) -> Box<dyn Object> {
+   if let Some(int_obj) = obj.as_any().downcast_ref::<Integer>() {
+      return Box::new( Integer { value: int_obj.value.clone() })
+   } else if let Some(bool_obj) = obj.as_any().downcast_ref::<Boolean>() {
+      return Box::new( Boolean { value: bool_obj.value.clone() })
+   } else if let Some(return_obj) = obj.as_any().downcast_ref::<ReturnValue>() {
+      // need some recursive shit here no???
+      let return_val = match_object_to(&return_obj.value);
+      return Box::new( ReturnValue { value: return_val })
+   } else if let Some(error_obj) = obj.as_any().downcast_ref::<Error>() {
+      return Box::new( Error { message: error_obj.message.clone() })
+   } else {
+      return Box::new( Null { })
+   }
+}
+
+
+
+
+
+
+
+
 #[derive(Copy, Clone, Debug, PartialEq)]         
 pub struct Integer {
    pub value: i64,

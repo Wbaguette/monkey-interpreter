@@ -1,8 +1,11 @@
 #![allow(unused)]
 
+use core::panic;
+use std::borrow::BorrowMut;
+
 use crate::objects::environment::Environment;
 use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier};
-use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error};
+use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, match_object_to};
 
 pub const NULL: Null = Null{};
 const TRUE: crate::objects::Boolean  = crate::objects::Boolean { value: true };
@@ -258,8 +261,8 @@ fn is_error(obj: Option<&Box<dyn Object>>) -> bool {
 fn eval_identifier(node: &Identifier, env: &Environment) -> Option<Box<dyn Object>> {
    return match env.get(&node.value) {
       Some(object) => {
-         // TODO: Once again a problem is happening because of trying to copy Box<dyn Object>
-         Some(*object)
+         let x = match_object_to(object);
+         Some(x)
       },
       None => Some(Box::new(Error::new(format!("identifier not found: {}", node.value))))
    }
