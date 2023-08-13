@@ -1,7 +1,7 @@
 #[allow(unused)]
 
 use crate::objects::environment::Environment;
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression};
 use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function};
 
 pub const NULL: Null = Null{};
@@ -45,8 +45,22 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
    }
 
    if node.node_as_any().is::<FunctionLiteral>() {
-      let n: &FunctionLiteral = node.node_as_any().downcast_ref::<FunctionLiteral>().unwrap();
-      return Some(Box::new(Function { params: n.params.clone(), body: n.body.clone(), env: env.clone()}));
+      let fn_node: &FunctionLiteral = node.node_as_any().downcast_ref::<FunctionLiteral>().unwrap();
+      return Some(Box::new(Function { params: fn_node.params.clone(), body: fn_node.body.clone(), env: env.clone()}));
+   }
+
+   if node.node_as_any().is::<CallExpression>() {
+      let ce_node: &CallExpression = node.node_as_any().downcast_ref::<CallExpression>().unwrap();
+      let function: Box<dyn Object> = eval(Box::new(ce_node.function.as_ref().unwrap().as_node()), env).unwrap();
+      if is_error(Some(&function)) {
+         return Some(function)
+      }
+
+      let args: Vec<Box<dyn Object>> = eval_expressions(ce_node.arguments.as_ref().clone(), env);
+      if args.len() == 1 && is_error(args.get(0)) {
+         return Some(args.get(0).unwrap().clone())
+      }
+      return apply_function(function, args)
    }
 
    if node.node_as_any().is::<ExpressionStatement>() {
@@ -264,5 +278,57 @@ fn eval_identifier(node: &Identifier, env: &Environment) -> Option<Box<dyn Objec
    return match env.get(&node.value) {
       Some(object) => Some(object.clone()),
       None => Some(Box::new(Error::new(format!("identifier not found: {}", node.value))))
+   }
+}
+
+fn eval_expressions(exps: Option<&Vec<Box<dyn Expression>>>, env: &mut Environment) -> Vec<Box<dyn Object>> {
+   let mut result: Vec<Box<dyn Object>> = vec![];
+   match exps {
+      Some(exprs) => {
+         for e in exprs {
+            let eval: Box<dyn Object> = eval(Box::new(e.as_node()), env).unwrap();
+            if is_error(Some(&eval)) {
+               return vec![eval]
+            }
+            result.push(eval);
+         }
+      },
+
+      None => return result
+   }
+   result
+}
+
+fn apply_function(function: Box<dyn Object>, args: Vec<Box<dyn Object>>) -> Option<Box<dyn Object>> {
+   if let Some(func) = function.as_any().downcast_ref::<Function>() {
+      let mut extended_env: Environment = extend_function_env(func, args);
+      let eval: Option<Box<dyn Object>> = eval(Box::new(func.body.as_ref().unwrap().as_node()), &mut extended_env);
+
+      return unwrap_return_value(eval);
+   } else {
+      return Some(Box::new(Error::new(format!("not a function: {}", function.r#type()))))  
+   }
+}
+
+fn extend_function_env(function: &Function, args: Vec<Box<dyn Object>>) -> Environment {
+   let mut env: Environment = Environment::new_enclosed_env(function.env.clone());
+   for (param_idx, param) in function.params.as_ref().unwrap().iter().enumerate() {
+     env.set(&param.value, args.get(param_idx).unwrap().clone());
+   }
+
+   env
+}
+
+fn unwrap_return_value(obj: Option<Box<dyn Object>>) -> Option<Box<dyn Object>> {
+   if obj.is_some() {
+      let uw_obj: Box<dyn Object> = obj.unwrap();
+      if let Some(return_value) = uw_obj.as_ref().as_any().downcast_ref::<ReturnValue>() {
+         let val: &Box<dyn Object> = &return_value.value;
+         return Some(val.to_owned())
+      } else {
+         return Some(uw_obj)
+      }
+   } else {
+      None
    }
 }

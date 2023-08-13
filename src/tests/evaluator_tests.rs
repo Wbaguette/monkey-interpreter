@@ -274,7 +274,7 @@ fn test_function_object() {
          if let Some(fn_obj) = eval.as_any().downcast_ref::<Function>() {
             assert_eq!(fn_obj.params.as_ref().unwrap().len(), 1);
             assert_eq!(fn_obj.params.as_ref().unwrap().get(0).unwrap().string(), "x");
-            
+
             let expected_body: String = String::from("(x + 2)");
             assert_eq!(fn_obj.body.as_ref().unwrap().string(), expected_body);
          } else {
@@ -283,4 +283,25 @@ fn test_function_object() {
       }
       None => panic!("test_eval returned None")
    }
+}
+
+#[test]
+fn test_function_application() {
+   i64Test::new("let identity = fn(x) { x; }; identity(5);", 5).test_me();
+   i64Test::new("let identity = fn(x) { return x; }; identity(5);", 5).test_me();
+   i64Test::new("let double = fn(x) { x * 2; }; double(5);", 10).test_me();
+   i64Test::new("let add = fn(x, y) { x + y; }; add(5, 5);", 10).test_me();
+   i64Test::new("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20).test_me();
+   i64Test::new("fn(x) { x; }(5)", 5).test_me();
+}
+
+#[test]
+fn test_closures() {
+   i64Test::new("
+      let newAdder = fn(x) {
+         fn(y) { x + y };
+      };
+      let addTwo = newAdder(2);
+      addTwo(2); 
+      ", 4).test_me();
 }
