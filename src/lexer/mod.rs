@@ -1,4 +1,4 @@
-#![allow(unused)]
+#[allow(unused)]
 pub mod token;
 
 use color_eyre::eyre::Result;

@@ -3,7 +3,7 @@
 use std::any::Any;
 
 use crate::objects::environment::Environment;
-use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue};
+use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue, Function};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
 use crate::parser::ast::{Program, Node};
@@ -264,4 +264,23 @@ fn test_let_statements() {
    i64Test::new("let a = 5 * 5; a;", 25).test_me();
    i64Test::new("let a = 5; let b = a; let c = a + b + 5; c;", 15).test_me();
    i64Test::new("let a = 5; let b = a; let c = a + b + 5; c;", 15).test_me();
+}
+
+#[test]
+fn test_function_object() {
+   let input: String = String::from("fn(x) { x + 2; };");
+   match test_eval(input) {
+      Some(eval) => {
+         if let Some(fn_obj) = eval.as_any().downcast_ref::<Function>() {
+            assert_eq!(fn_obj.params.as_ref().unwrap().len(), 1);
+            assert_eq!(fn_obj.params.as_ref().unwrap().get(0).unwrap().string(), "x");
+            
+            let expected_body: String = String::from("(x + 2)");
+            assert_eq!(fn_obj.body.as_ref().unwrap().string(), expected_body);
+         } else {
+            panic!("'Object' trait object returned is not a Function")
+         }
+      }
+      None => panic!("test_eval returned None")
+   }
 }

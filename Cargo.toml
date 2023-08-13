@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 color-eyre = "0.6.2"
 ctor = "0.2.4"
+dyn-clone = "1.0.12"
 lazy_static = "1.4.0"

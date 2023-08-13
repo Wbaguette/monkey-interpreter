@@ -1,5 +1,9 @@
 pub mod environment;
-use std::{any::Any, fmt::Debug};
+
+use std::any::Any;
+use dyn_clone::DynClone;
+use crate::parser::ast::{Identifier, BlockStatement, Node};
+use self::environment::Environment;
 
 #[derive(Debug, Clone)]
 pub enum ObjectTypes {
@@ -8,6 +12,7 @@ pub enum ObjectTypes {
    NullObj,
    ReturnValObj,
    ErrorObj,
+   FunctionObj,
 }
 impl ObjectTypes {
    pub fn to_string(&self) -> String {
@@ -17,37 +22,24 @@ impl ObjectTypes {
          Self::NullObj => "NULL",
          Self::ReturnValObj => "RETURN_VALUE",
          Self::ErrorObj => "ERROR",
+         Self::FunctionObj => "FUNCTION",
       }.to_string()
    }
 }
 
 type ObjectType = String;
-pub trait Object {
+pub trait Object: DynClone {
    fn r#type(&self) -> ObjectType;
    fn inspect(&self) -> String;
    fn as_any(&self) -> &dyn Any;
 }
-impl Debug for dyn Object {
+impl std::fmt::Debug for dyn Object {
    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
       f.write_str(self.inspect().as_str())
    }
 }
+dyn_clone::clone_trait_object!(Object);
 
-pub fn match_object_to(obj: &Box<dyn Object>) -> Box<dyn Object> {
-   if let Some(int_obj) = obj.as_any().downcast_ref::<Integer>() {
-      return Box::new( Integer { value: int_obj.value.clone() })
-   } else if let Some(bool_obj) = obj.as_any().downcast_ref::<Boolean>() {
-      return Box::new( Boolean { value: bool_obj.value.clone() })
-   } else if let Some(return_obj) = obj.as_any().downcast_ref::<ReturnValue>() {
-      // need some recursive shit here no???
-      let return_val = match_object_to(&return_obj.value);
-      return Box::new( ReturnValue { value: return_val })
-   } else if let Some(error_obj) = obj.as_any().downcast_ref::<Error>() {
-      return Box::new( Error { message: error_obj.message.clone() })
-   } else {
-      return Box::new( Null { })
-   }
-}
 
 
 
@@ -108,6 +100,7 @@ impl Object for Null {
    }
 }
 
+#[derive(Clone, Debug)]
 pub struct ReturnValue {
    pub value: Box<dyn Object>,
 }
@@ -122,11 +115,6 @@ impl Object for ReturnValue {
 
    fn as_any(&self) -> &dyn Any {
       self
-   }
-}
-impl PartialEq for ReturnValue {
-   fn eq(&self, other: &Self) -> bool {
-      self.r#type() == other.r#type() && self.inspect() == other.inspect()
    }
 }
 
@@ -146,6 +134,40 @@ impl Object for Error {
 
    fn inspect(&self) -> String {
       String::from(format!("ERROR: {}", self.message))
+   }
+
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+#[derive(Clone, Debug)] 
+pub struct Function {
+   pub params: Option<Vec<Identifier>>,      // Situation: No Params in function => params becomes Some(empty vec), 
+                                             // Situation: Params fuck up/syntax is wrong => params is None
+   pub body: Option<BlockStatement>,
+   // This environment is the overall environment that a function is CALLED from, meaning this should be a reference
+   pub env: Environment,
+}
+impl Object for Function {
+   fn r#type(&self) -> ObjectType {
+      ObjectTypes::FunctionObj.to_string()
+   }
+
+   fn inspect(&self) -> String {
+      let mut out: String = String::new();
+      let mut params: Vec<String> = vec![];
+      for p in self.params.as_ref().unwrap() {
+         params.push(p.string())
+      }
+
+      out.push_str("fn (");
+      out.push_str(params.join(", ").as_str());
+      out.push_str(") {\n");
+      out.push_str(self.body.as_ref().unwrap().string().as_str());
+      out.push_str("\n}");
+
+      out
    }
 
    fn as_any(&self) -> &dyn Any {

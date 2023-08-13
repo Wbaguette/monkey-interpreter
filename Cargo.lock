@@ -82,6 +82,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "304e6508efa593091e97a9abbc10f90aa7ca635b6d2784feff3c89d41dd12272"
+
+[[package]]
 name = "eyre"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -136,6 +142,7 @@ version = "0.1.0"
 dependencies = [
  "color-eyre",
  "ctor",
+ "dyn-clone",
  "lazy_static",
 ]
 

@@ -1,15 +1,17 @@
-#![allow(unused)]
+#[allow(unused)]
 
+use dyn_clone::DynClone;
 use crate::lexer::token::Token;
 use std::any::Any;
 
-pub trait Node {
+pub trait Node: DynClone {
    fn token_literal(&self) -> &str;
    fn string(&self) -> String;
    fn node_as_any(&self) -> &dyn Any;
 }
+dyn_clone::clone_trait_object!(Node);
 
-pub trait Statement: Node + Any {
+pub trait Statement: Node + Any + DynClone {
    fn statement_node(&self);
    fn as_any(&self) -> &dyn Any;
    fn as_node(&self) -> &dyn Node;
@@ -19,8 +21,11 @@ impl std::fmt::Debug for dyn Statement {
       f.write_str(format!("{}", self.string()).as_str())
    }
 }
+dyn_clone::clone_trait_object!(Statement);
 
-pub trait Expression: Node + Any {
+
+
+pub trait Expression: Node + Any + DynClone {
    fn expression_node(&self);
    fn as_any(&self) -> &dyn Any;
    fn as_node(&self) -> &dyn Node;
@@ -30,12 +35,14 @@ impl std::fmt::Debug for dyn Expression {
       f.write_str(format!("{}", self.string()).as_str())
    }
 }
+dyn_clone::clone_trait_object!(Expression);
 
 
 
 
 
 
+#[derive(Debug, Clone)]
 pub struct Program {
    pub statements: Vec<Box<dyn Statement>>,
 }
@@ -96,7 +103,7 @@ impl Expression for Identifier {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LetStatement {
    pub token: Token,   // this should always be TokenType::LET
    pub name: Identifier,   // LetStatement.name.token_literal() should return the binding value: let foo = 5;   => "foo"
@@ -137,7 +144,7 @@ impl Statement for LetStatement {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
    pub token: Token,
    pub return_value: Option<Box<dyn Expression>>,
@@ -176,7 +183,7 @@ impl Statement for ReturnStatement {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpressionStatement {
    pub token: Token,
    pub expression: Option<Box<dyn Expression>>,
@@ -210,7 +217,7 @@ impl Statement for ExpressionStatement {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IntegerLiteral {
    pub token: Token,
    pub value: i64,
@@ -240,7 +247,7 @@ impl Expression for IntegerLiteral {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixExpression {
    pub token: Token,
    pub operator: String,
@@ -275,7 +282,7 @@ impl Expression for PrefixExpression {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfixExpression {
    pub token: Token, 
    pub left: Option<Box<dyn Expression>>,
@@ -313,7 +320,7 @@ impl Expression for InfixExpression {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Boolean {
    pub token: Token,
    pub value: bool,
@@ -343,7 +350,7 @@ impl Expression for Boolean {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IfExpression {
    pub token: Token,
    pub condition: Option<Box<dyn Expression>>,
@@ -382,7 +389,7 @@ impl Expression for IfExpression {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockStatement {
    pub token: Token,
    pub statements: Vec<Box<dyn Statement>>,
@@ -418,7 +425,7 @@ impl Statement for BlockStatement {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionLiteral {
    pub token: Token,
    pub params: Option<Vec<Identifier>>,      // Situation: No Params in function => params becomes Some(empty vec), 
@@ -461,7 +468,7 @@ impl Expression for FunctionLiteral {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CallExpression {
    pub token: Token,
    pub function: Option<Box<dyn Expression>>,   // Identifier or FunctionLiteral

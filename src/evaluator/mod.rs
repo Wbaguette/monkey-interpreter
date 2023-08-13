@@ -1,11 +1,8 @@
-#![allow(unused)]
-
-use core::panic;
-use std::borrow::BorrowMut;
+#[allow(unused)]
 
 use crate::objects::environment::Environment;
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier};
-use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, match_object_to};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral};
+use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function};
 
 pub const NULL: Null = Null{};
 const TRUE: crate::objects::Boolean  = crate::objects::Boolean { value: true };
@@ -45,6 +42,11 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
          return Some(right)
       }
       return Some(eval_infix_expression(node_to_eval.operator.clone(), left, right))
+   }
+
+   if node.node_as_any().is::<FunctionLiteral>() {
+      let n: &FunctionLiteral = node.node_as_any().downcast_ref::<FunctionLiteral>().unwrap();
+      return Some(Box::new(Function { params: n.params.clone(), body: n.body.clone(), env: env.clone()}));
    }
 
    if node.node_as_any().is::<ExpressionStatement>() {
@@ -130,8 +132,8 @@ fn eval_program(stmts: &Vec<Box<dyn Statement>>, env: &mut Environment) -> Optio
                return Some(Box::new(*val.as_any().downcast_ref::<Null>().unwrap()))
             }
          }
-      
-         if let Some(error_value) = result.as_ref().unwrap().as_any().downcast_ref::<Error>() {
+         
+         if result.as_ref().unwrap().as_any().is::<Error>() {
             return result
          }
       }
@@ -239,10 +241,10 @@ fn eval_block_statement(stmts: &Vec<Box<dyn Statement>>, env: &mut Environment) 
       result = eval(thing, env);
 
       if result.is_some() {
-         if let Some(result_value) = result.as_ref().unwrap().as_any().downcast_ref::<ReturnValue>() {
+         if result.as_ref().unwrap().as_any().is::<ReturnValue>() {
             return result
          } 
-         if let Some(error_value) = result.as_ref().unwrap().as_any().downcast_ref::<Error>() {
+         if result.as_ref().unwrap().as_any().is::<Error>() {
             return result
          }
       }
@@ -260,10 +262,7 @@ fn is_error(obj: Option<&Box<dyn Object>>) -> bool {
 
 fn eval_identifier(node: &Identifier, env: &Environment) -> Option<Box<dyn Object>> {
    return match env.get(&node.value) {
-      Some(object) => {
-         let x = match_object_to(object);
-         Some(x)
-      },
+      Some(object) => Some(object.clone()),
       None => Some(Box::new(Error::new(format!("identifier not found: {}", node.value))))
    }
 }
