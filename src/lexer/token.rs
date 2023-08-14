@@ -40,6 +40,8 @@ pub enum TokenType {
    GT, 
    EQ,
    NOTEQ,
+   LBRACKET,
+   RBRACKET,
 
    // Keywords
    FUNCTION,
