@@ -103,6 +103,36 @@ impl ErrorMessageTest {
    }
 }
 
+struct BuiltInTest<T> 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
+{
+   input: String,
+   expected: T,
+}
+impl<T> BuiltInTest<T> 
+where T: std::fmt::Debug + Any + crate::helper::TestType + Clone, 
+{
+   pub fn new(input: &str, expected: T) -> Self {
+      BuiltInTest { input: input.to_string() , expected }
+   }
+
+   pub fn test_me(&mut self) {
+      match test_eval(self.input.clone()) {
+         Some(eval) => {
+            if self.expected.is_i64() {
+               test_integer_object(eval, self.expected.downcast_i64().unwrap())
+            } else if self.expected.is_string() {
+               if let Some(err_obj) = eval.as_any().downcast_ref::<Error>() {
+                  assert_eq!(err_obj.message, self.expected.downcast_string().unwrap())
+               } else {
+                  panic!("object is not Error.")
+               }
+            }
+         },
+         None => panic!("test_eval returned None.")
+      }
+   }
+}
 
 
 
@@ -318,7 +348,7 @@ fn test_string_literal() {
             panic!("object returned from test_eval is not a Monkey String")
          }
       }
-      None => panic!("test_eval returned None")
+      None => panic!("test_eval returned None.")
    }
 }
 
@@ -333,6 +363,15 @@ fn test_string_concat() {
             panic!("object returned from test_eval is not a Monkey String")
          }
       }
-      None => panic!("test_eval returned None")
+      None => panic!("test_eval returned None.")
    }
+}
+
+#[test]
+fn test_builtin_functions() {
+   BuiltInTest::new("len(\"\")", 0).test_me();
+   BuiltInTest::new("len(\"four\")", 4).test_me();
+   BuiltInTest::new("len(\"hello world\")", 11).test_me();
+   BuiltInTest::new("len(1)", "argument to 'len' not supported, got INTEGER".to_string()).test_me();
+   BuiltInTest::new("len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1".to_string()).test_me();
 }

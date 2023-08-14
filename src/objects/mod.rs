@@ -14,6 +14,7 @@ pub enum ObjectTypes {
    ErrorObj,
    FunctionObj,
    StringObj,
+   BuiltInObj, 
 }
 impl ObjectTypes {
    pub fn to_string(&self) -> String {
@@ -25,6 +26,7 @@ impl ObjectTypes {
          Self::ErrorObj => "ERROR",
          Self::FunctionObj => "FUNCTION",
          Self::StringObj => "STRING",
+         Self::BuiltInObj => "BUILTIN",
       }.to_string()
    }
 }
@@ -189,6 +191,26 @@ impl Object for MkyString {
 
    fn inspect(&self) -> String {
       self.value.clone()
+   }
+
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+// Bill Tin LULW
+type BuiltInFunction = fn() -> Box<dyn Object>;
+#[derive(Clone, Debug)] 
+pub struct BuiltIn {
+   pub func: BuiltInFunction,
+}
+impl Object for BuiltIn {
+   fn r#type(&self) -> ObjectType {
+      ObjectTypes::BuiltInObj.to_string()
+   }
+
+   fn inspect(&self) -> String {
+      "builtin function".into()
    }
 
    fn as_any(&self) -> &dyn Any {

@@ -1,4 +1,5 @@
 #[allow(unused)]
+pub mod builtins;
 
 use crate::objects::environment::Environment;
 use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression, StringLiteral};
