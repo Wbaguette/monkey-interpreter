@@ -1,8 +1,8 @@
 #[allow(unused)]
 
 use crate::objects::environment::Environment;
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression};
-use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression, StringLiteral};
+use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function, MkyString};
 
 pub const NULL: Null = Null{};
 const TRUE: crate::objects::Boolean  = crate::objects::Boolean { value: true };
@@ -15,6 +15,7 @@ fn native_bool_to_boolean_object(input: bool) -> Box<dyn Object> {
    }
 }
 
+// Match the current AST Node being evaluated and evaluate it (returns an Object trait object)
 pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Object>> {
 
    if node.node_as_any().is::<Program>() {
@@ -70,6 +71,11 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
 
    if node.node_as_any().is::<Identifier>() {
       return eval_identifier(node.node_as_any().downcast_ref::<Identifier>().unwrap(), env)
+   }
+
+   if node.node_as_any().is::<StringLiteral>() {
+      let node_to_eval: &StringLiteral = node.node_as_any().downcast_ref::<StringLiteral>().unwrap();
+      return Some(Box::new(MkyString { value: node_to_eval.value.clone() }))
    }
 
    if node.node_as_any().is::<LetStatement>() {

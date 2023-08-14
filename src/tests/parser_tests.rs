@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression, BlockStatement};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression, BlockStatement, StringLiteral};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
@@ -646,5 +646,26 @@ fn test_call_expression_parsing() {
       }
    } else {
       panic!("program.statements.get(0) is not an ExpressionStatement.")
+   }
+}
+
+#[test]
+fn test_string_literal_expression() {
+   let input: String = String::from("\"hello world\";");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+   check_parser_errors(&parser); 
+
+   if let Some(stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(literal) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<StringLiteral>() {
+         assert_eq!(literal.value, "hello world")
+      } else {
+         panic!("exp is not StringLiteral")
+      }
    }
 }

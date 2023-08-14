@@ -1,5 +1,4 @@
 #![allow(unused)]
-
 pub mod ast;
 
 use lazy_static::lazy_static;
@@ -8,7 +7,7 @@ use std::collections::HashMap;
 use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean, IfExpression, BlockStatement, FunctionLiteral, CallExpression};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
-use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral};
+use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral, StringLiteral};
 use color_eyre::Result;
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
@@ -63,7 +62,7 @@ impl Parser {
          prefix_parse_fns: HashMap::new(),
          infix_parse_fns: HashMap::new(),
       };
-      // Move the jawn forward to be in position to parse
+      // Move the tokens forward to be in the correct position to parse
       p.next_token();
       p.next_token();
 
@@ -77,6 +76,7 @@ impl Parser {
       p.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expr);
       p.register_prefix(TokenType::IF, Parser::parse_if_expression);
       p.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
+      p.register_prefix(TokenType::STRING, Parser::parse_string_literal);
 
       p.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
       p.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -427,14 +427,8 @@ impl Parser {
       }
 
       self.next_token();
-      // This *might* fuck something up when .unwrap(), Oh well
       args.push(self.parse_expression(Precedence::LOWEST).unwrap());
-      // If it does then just use this...
-      // match self.parse_expression(Precedence::LOWEST) {
-      //    Some(expr) => args.push(expr),
-      //    None => {},
-      // }
-
+      
       while self.peek_token_is(TokenType::COMMA) {
          self.next_token();
          self.next_token();
@@ -446,6 +440,10 @@ impl Parser {
       }
 
       Some(args)
+   }
+
+   fn parse_string_literal(&mut self) -> Option<Box<dyn Expression>> {
+      Some(Box::new(StringLiteral { token: self.cur_token.clone(), value: self.cur_token.literal.clone() }))
    }
 
 

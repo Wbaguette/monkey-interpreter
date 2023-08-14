@@ -13,6 +13,7 @@ pub enum ObjectTypes {
    ReturnValObj,
    ErrorObj,
    FunctionObj,
+   StringObj,
 }
 impl ObjectTypes {
    pub fn to_string(&self) -> String {
@@ -23,6 +24,7 @@ impl ObjectTypes {
          Self::ReturnValObj => "RETURN_VALUE",
          Self::ErrorObj => "ERROR",
          Self::FunctionObj => "FUNCTION",
+         Self::StringObj => "STRING",
       }.to_string()
    }
 }
@@ -146,7 +148,7 @@ pub struct Function {
    pub params: Option<Vec<Identifier>>,      // Situation: No Params in function => params becomes Some(empty vec), 
                                              // Situation: Params fuck up/syntax is wrong => params is None
    pub body: Option<BlockStatement>,
-   // This environment is the overall environment that a function is CALLED from, meaning this should be a reference
+   // This environment is a copy of the overall environment that a function is CALLED from
    pub env: Environment,
 }
 impl Object for Function {
@@ -168,6 +170,25 @@ impl Object for Function {
       out.push_str("\n}");
 
       out
+   }
+
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+// MkyString => "Monkey String" since using "String" as a name is no bueno
+#[derive(Clone, Debug)] 
+pub struct MkyString {
+   pub value: String,
+}
+impl Object for MkyString {
+   fn r#type(&self) -> ObjectType {
+      ObjectTypes::StringObj.to_string()
+   }
+
+   fn inspect(&self) -> String {
+      self.value.clone()
    }
 
    fn as_any(&self) -> &dyn Any {

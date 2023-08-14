@@ -511,8 +511,8 @@ impl Expression for CallExpression {
 
 #[derive(Debug, Clone)]
 pub struct StringLiteral {
-   token: Token,
-   value: String,
+   pub token: Token,
+   pub value: String,
 }
 impl Node for StringLiteral {
    fn token_literal(&self) -> &str {

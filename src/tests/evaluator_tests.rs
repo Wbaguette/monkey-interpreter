@@ -3,7 +3,7 @@
 use std::any::Any;
 
 use crate::objects::environment::Environment;
-use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue, Function};
+use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue, Function, MkyString};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
 use crate::parser::ast::{Program, Node};
@@ -304,4 +304,19 @@ fn test_closures() {
       let addTwo = newAdder(2);
       addTwo(2); 
       ", 4).test_me();
+}
+
+#[test]
+fn test_string_literal() {
+   let input: String = String::from("\"Hello World!\"");
+   match test_eval(input) {
+      Some(eval) => {
+         if let Some(str_obj) = eval.as_any().downcast_ref::<MkyString>() {
+            assert_eq!(str_obj.value, "Hello World!")
+         } else {
+            panic!("object returned from test_eval is not a Monkey String")
+         }
+      }
+      None => panic!("test_eval returned None")
+   }
 }
