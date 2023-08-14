@@ -2,7 +2,7 @@
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression, BlockStatement, StringLiteral};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression, BlockStatement, StringLiteral, ArrayLiteral, IndexExpression};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
@@ -12,9 +12,8 @@ use std::any::Any;
 
 
 
-// SOME GENERIC STRUCTS FOR HELPER FUNCTIONS AND MORE GENERIC TEST CASES
-// THIS SHIT REMOVED LIKE 100 LINES OF REPEATED CODE...
-
+// Some generic structs that made life easier when writing these tests
+// See TestType trait in helper module to see what types are accepted
 
 
 
@@ -498,6 +497,9 @@ fn test_operator_precedence_parsing() {
    Test::new("a + add(b * c) + d", "((a + add((b * c))) + d)").test_me();
    Test::new("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))").test_me();
    Test::new("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))").test_me();
+
+   Test::new("a * [1, 2, 3, 4][b * c] * d", "((a * ([1, 2, 3, 4][(b * c)])) * d)").test_me();
+   Test::new("add(a * b[2], b[1], 2 * [1, 2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))").test_me();
 }
 
 #[test]
@@ -666,6 +668,52 @@ fn test_string_literal_expression() {
          assert_eq!(literal.value, "hello world")
       } else {
          panic!("exp is not StringLiteral")
+      }
+   }
+}
+
+#[test]
+fn test_parsing_array_literals() {
+   let input: String = String::from("[1, 2 * 2, 3 + 3]");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+   check_parser_errors(&parser); 
+
+   if let Some(stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(array) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<ArrayLiteral>() {
+         assert_eq!(array.elements.len(), 3);
+         test_integer_literal(array.elements.get(0).unwrap(), 1);
+         test_infix_expression(array.elements.get(1).unwrap(), 2, "*".to_string(), 2);
+         test_infix_expression(array.elements.get(2).unwrap(), 3, "+".to_string(), 3);
+      } else {
+         panic!("exp is not ArrayLiteral")
+      }
+   }
+}
+
+#[test]
+fn test_parsing_index_expressions() {
+   let input: String = String::from("myArray[1 + 1]");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+   check_parser_errors(&parser); 
+
+   if let Some(stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(index_expr) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<IndexExpression>() {
+         test_identifier(&index_expr.left, "myArray".to_string());
+         test_infix_expression(&index_expr.index, 1, "+".to_string(), 1)
+      } else {
+         panic!("exp is not IndexExpression")
       }
    }
 }

@@ -96,9 +96,6 @@ impl Lexer {
       self.eat_whitespace();
 
       let tok: Token = match self.ch {
-         '"' => {
-            Token::new(TokenType::STRING, self.read_string().as_str())
-         },
          '=' => {
             if self.peek_char() == '=' {
                let ch: char = self.ch;
@@ -133,8 +130,10 @@ impl Lexer {
          '<' => Token::new(TokenType::LT, "<"),
          '>' => Token::new(TokenType::GT, ">"),
          '*' => Token::new(TokenType::ASTERISK, "*"),
-
-
+         '"' => Token::new(TokenType::STRING, self.read_string().as_str()),
+         '[' => Token::new(TokenType::LBRACKET, "["),
+         ']' => Token::new(TokenType::RBRACKET, "]"),
+      
          '\0' => Token::new(TokenType::EOF, ""),
 
          _ => {

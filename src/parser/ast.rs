@@ -536,3 +536,82 @@ impl Expression for StringLiteral {
       self
    }
 }
+
+
+
+#[derive(Debug, Clone)]
+pub struct ArrayLiteral {
+   pub token: Token,                              // The LBRACKET token "["
+   pub elements: Vec<Box<dyn Expression>>,        // Arrays can host multiple types 
+}
+impl Node for ArrayLiteral {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      let mut out: String = String::new();
+      let mut e: Vec<String> = Vec::new();
+
+      for el in &self.elements {
+         e.push(el.string())
+      }
+      out.push_str("[");
+      out.push_str(e.join(", ").as_str());
+      out.push_str("]");
+
+      out
+   }
+
+   fn node_as_any(&self) -> &dyn Any {
+      self
+   }
+}
+impl Expression for ArrayLiteral {
+   fn expression_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+   fn as_node(&self) -> &dyn Node {
+      self
+   }
+}
+
+
+
+#[derive(Debug, Clone)]
+pub struct IndexExpression {
+   pub token: Token,                   // The LBRACKET token "["
+   pub left: Box<dyn Expression>,
+   pub index: Box<dyn Expression>,
+}
+impl Node for IndexExpression {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      let mut out: String = String::new();
+
+      out.push_str("(");
+      out.push_str(self.left.string().as_str());
+      out.push_str("[");
+      out.push_str(self.index.string().as_str());
+      out.push_str("])");
+
+      out
+   }
+
+   fn node_as_any(&self) -> &dyn Any {
+      self
+   }
+}
+impl Expression for IndexExpression {
+   fn expression_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+   fn as_node(&self) -> &dyn Node {
+      self
+   }
+}

@@ -10,6 +10,8 @@ use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral, StringLiteral};
 use color_eyre::Result;
 
+use self::ast::ArrayLiteral;
+
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
 type InfixParseFn = fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
 
@@ -21,7 +23,7 @@ pub enum Precedence {
    SUM,             // +
    PRODUCT,         // *
    PREFIX,          // -X or !X
-   CALL,            // myFunction(X)   
+   CALL,            // myFn(X)   
 }
 
 lazy_static! {
@@ -77,6 +79,7 @@ impl Parser {
       p.register_prefix(TokenType::IF, Parser::parse_if_expression);
       p.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
       p.register_prefix(TokenType::STRING, Parser::parse_string_literal);
+      p.register_prefix(TokenType::LBRACKET, Parser::parse_array_literal);
 
       p.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
       p.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -414,7 +417,7 @@ impl Parser {
       Some(Box::new(CallExpression {
          token: self.cur_token.clone(),
          function: Some(function),
-         arguments: self.parse_call_arguments(),
+         arguments: self.parse_expression_list(TokenType::RPAREN),     // arguments: self.parse_call_arguments(), 
       }))
    }
 
@@ -446,6 +449,38 @@ impl Parser {
       Some(Box::new(StringLiteral { token: self.cur_token.clone(), value: self.cur_token.literal.clone() }))
    }
 
+   fn parse_array_literal(&mut self) -> Option<Box<dyn Expression>> {
+      Some(Box::new(ArrayLiteral {
+         token: self.cur_token.clone(),
+         elements: self.parse_expression_list(TokenType::RBRACKET).unwrap()
+      }))
+   }
+
+   fn parse_expression_list(&mut self, end: TokenType) -> Option<Vec<Box<dyn Expression>>> {
+      let mut list: Vec<Box<dyn Expression>> = Vec::new();
+
+      if self.peek_token_is(end) {
+         self.next_token();
+         return Some(list)
+      }
+
+      self.next_token();
+      // If it panics here on unwrap then it just means that the expression is unsupported or syntactically wrong
+      list.push(self.parse_expression(Precedence::LOWEST).unwrap());
+
+      while self.peek_token_is(TokenType::COMMA) {
+         self.next_token();
+         self.next_token();
+         // If it panics here on unwrap then it just means that the expression is unsupported or syntactically wrong
+         list.push(self.parse_expression(Precedence::LOWEST).unwrap());
+      }
+
+      if !self.expect_peek(end) {
+         return None
+      }
+
+      Some(list)
+   }
 
 
 
