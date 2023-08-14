@@ -199,7 +199,7 @@ impl Object for MkyString {
 }
 
 // Bill Tin LULW
-type BuiltInFunction = fn() -> Box<dyn Object>;
+type BuiltInFunction = fn(args: Vec<Box<dyn Object>>) -> Box<dyn Object>;
 #[derive(Clone, Debug)] 
 pub struct BuiltIn {
    pub func: BuiltInFunction,

@@ -3,7 +3,9 @@ pub mod builtins;
 
 use crate::objects::environment::Environment;
 use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression, StringLiteral};
-use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function, MkyString};
+use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function, MkyString, BuiltIn};
+
+use self::builtins::lookup_builtins;
 
 pub const NULL: Null = Null{};
 const TRUE: crate::objects::Boolean  = crate::objects::Boolean { value: true };
@@ -295,7 +297,13 @@ fn is_error(obj: Option<&Box<dyn Object>>) -> bool {
 fn eval_identifier(node: &Identifier, env: &Environment) -> Option<Box<dyn Object>> {
    return match env.get(&node.value) {
       Some(object) => Some(object.clone()),
-      None => Some(Box::new(Error::new(format!("identifier not found: {}", node.value))))
+
+      None => {
+         match lookup_builtins(&node.value) {
+            Some(builtin) => Some(Box::new(builtin)),
+            None => Some(Box::new(Error::new(format!("identifier not found: {}", node.value))))
+         }
+      }
    }
 }
 
@@ -323,6 +331,8 @@ fn apply_function(function: Box<dyn Object>, args: Vec<Box<dyn Object>>) -> Opti
       let eval: Option<Box<dyn Object>> = eval(Box::new(func.body.as_ref().unwrap().as_node()), &mut extended_env);
 
       return unwrap_return_value(eval);
+   } else if let Some(builtin_func) = function.as_any().downcast_ref::<BuiltIn>() {
+      return Some((builtin_func.func)(args))
    } else {
       return Some(Box::new(Error::new(format!("not a function: {}", function.r#type()))))  
    }
