@@ -2,8 +2,8 @@
 pub mod builtins;
 
 use crate::objects::environment::Environment;
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression, StringLiteral};
-use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function, MkyString, BuiltIn};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression, StringLiteral, ArrayLiteral, IndexExpression};
+use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function, MkyString, BuiltIn, Array};
 
 use self::builtins::lookup_builtins;
 
@@ -81,6 +81,18 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
       return Some(Box::new(MkyString { value: node_to_eval.value.clone() }))
    }
 
+   if node.node_as_any().is::<ArrayLiteral>() {
+      let node_to_eval: &ArrayLiteral = node.node_as_any().downcast_ref::<ArrayLiteral>().unwrap();
+      let elements: Vec<Box<dyn Object>> = eval_expressions(Some(&node_to_eval.elements), env);
+
+      // Found an error while evaluating the elements, and 
+      if elements.len() == 1 && is_error(elements.get(0)) {
+         return Some(elements.get(0).unwrap().clone());
+      }
+
+      return Some(Box::new(Array { elements }))
+   }
+
    if node.node_as_any().is::<LetStatement>() {
       let node_to_eval: &LetStatement = node.node_as_any().downcast_ref::<LetStatement>().unwrap();
       let value: Box<dyn Object> = eval(Box::new(node_to_eval.value.as_ref().unwrap().as_node()), env).unwrap();
@@ -107,6 +119,22 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
    if node.node_as_any().is::<IfExpression>() {
       let if_expr_to_eval: &IfExpression = node.node_as_any().downcast_ref::<IfExpression>().unwrap();
       return Some(eval_if_expression(&if_expr_to_eval, env))
+   }
+
+   if node.node_as_any().is::<IndexExpression>() {
+      let node_to_eval: &IndexExpression = node.node_as_any().downcast_ref::<IndexExpression>().unwrap();
+
+      let left: Box<dyn Object> = eval(Box::new(node_to_eval.left.as_node()), env).unwrap();
+      if is_error(Some(&left)) {
+         return Some(left)
+      }
+
+      let index: Box<dyn Object> = eval(Box::new(node_to_eval.index.as_node()), env).unwrap();
+      if is_error(Some(&index)) {
+         return Some(index)
+      }
+      
+      return Some(eval_index_expression(left, index));
    }
 
    if node.node_as_any().is::<Boolean>() {
@@ -359,4 +387,24 @@ fn unwrap_return_value(obj: Option<Box<dyn Object>>) -> Option<Box<dyn Object>> 
    } else {
       None
    }
+}
+
+fn eval_index_expression(left: Box<dyn Object>, index: Box<dyn Object>) -> Box<dyn Object> {
+   if left.r#type() == ObjectTypes::ArrayObj.to_string() && index.r#type() == ObjectTypes::IntegerObj.to_string() {
+      return eval_array_index_expression(left, index)
+   } else {
+      return Box::new(Error::new(format!("index operator not supported: {}", left.r#type())))
+   }
+}
+
+fn eval_array_index_expression(array: Box<dyn Object>, index: Box<dyn Object>) -> Box<dyn Object> {
+   let array_obj: &Array = array.as_any().downcast_ref::<Array>().unwrap();
+   let idx: i64 = index.as_any().downcast_ref::<Integer>().unwrap().value.clone();
+
+   let max: i64 = array_obj.elements.len() as i64 - 1;
+   if idx < 0 || idx > max {
+      return Box::new(NULL)
+   }
+
+   return array_obj.elements.get(idx as usize).unwrap().clone()
 }

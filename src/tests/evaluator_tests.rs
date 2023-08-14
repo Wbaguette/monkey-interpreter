@@ -3,7 +3,7 @@
 use std::any::Any;
 
 use crate::objects::environment::Environment;
-use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue, Function, MkyString};
+use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue, Function, MkyString, Array};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
 use crate::parser::ast::{Program, Node};
@@ -134,6 +134,29 @@ where T: std::fmt::Debug + Any + crate::helper::TestType + Clone,
    }
 }
 
+struct ArrayIndexExpressionsTest {
+   input: String,
+   expected: Option<i64>,
+}
+impl ArrayIndexExpressionsTest {
+   pub fn new(input: &str, expected: Option<i64>) -> Self {
+      ArrayIndexExpressionsTest { input: input.to_string(), expected }
+   }
+
+   pub fn test_me(&mut self) {
+      match test_eval(self.input.clone()) {
+         Some(eval) => {
+            if self.expected.is_some() {
+               test_integer_object(eval, self.expected.unwrap())
+            } else {
+               test_null_object(eval)
+            }
+         }, 
+         None => panic!("test_eval returned None.")
+      }
+   }
+}
+
 
 
 // HELPER FUNCTIONS
@@ -171,7 +194,6 @@ fn test_boolean_object(obj: Box<dyn Object>, expected: bool) {
 }
 
 fn test_null_object(obj: Box<dyn Object>) {
-   // This might be iffy with references... But the object passed here should always be a Null object 
    assert_eq!(&NULL, obj.as_any().downcast_ref::<Null>().unwrap());
 }
 
@@ -374,4 +396,36 @@ fn test_builtin_functions() {
    BuiltInTest::new("len(\"hello world\")", 11).test_me();
    BuiltInTest::new("len(1)", "argument to 'len' not supported, got INTEGER".to_string()).test_me();
    BuiltInTest::new("len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1".to_string()).test_me();
+}
+
+#[test]
+fn test_array_literals() {
+   let input: String = String::from("[1, 2 * 2, 3 + 3]");
+   match test_eval(input) {
+      Some(eval) => {
+         if let Some(array_obj) = eval.as_any().downcast_ref::<Array>() {
+            assert_eq!(array_obj.elements.len(), 3);
+            test_integer_object(array_obj.elements.get(0).unwrap().clone(), 1);
+            test_integer_object(array_obj.elements.get(1).unwrap().clone(), 4);
+            test_integer_object(array_obj.elements.get(2).unwrap().clone(), 6);
+         } else {
+            panic!("eval is not Array")
+         }
+      }
+      None => panic!("test_eval returned None.")
+   }
+}
+
+#[test]
+fn test_array_index_expressions() {
+   ArrayIndexExpressionsTest::new("[1, 2, 3][0]", Some(1)).test_me();
+   ArrayIndexExpressionsTest::new("[1, 2, 3][1]", Some(2)).test_me();
+   ArrayIndexExpressionsTest::new("[1, 2, 3][2]", Some(3)).test_me();
+   ArrayIndexExpressionsTest::new("let i = 0; [1][i];", Some(1)).test_me();
+   ArrayIndexExpressionsTest::new("[1, 2, 3][1 + 1];", Some(3)).test_me();
+   ArrayIndexExpressionsTest::new("let myArray = [1, 2, 3]; myArray[2];", Some(3)).test_me();
+   ArrayIndexExpressionsTest::new("let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", Some(6)).test_me();
+   ArrayIndexExpressionsTest::new("let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", Some(2)).test_me();
+   ArrayIndexExpressionsTest::new("[1, 2, 3][3]", None).test_me();
+   ArrayIndexExpressionsTest::new("[1, 2, 3][-1]", None).test_me();
 }

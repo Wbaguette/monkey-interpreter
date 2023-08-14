@@ -4,7 +4,7 @@ pub mod ast;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean, IfExpression, BlockStatement, FunctionLiteral, CallExpression};
+use crate::parser::ast::{Program, Identifier, LetStatement, Statement, ReturnStatement, PrefixExpression, InfixExpression, Boolean, IfExpression, BlockStatement, FunctionLiteral, CallExpression, IndexExpression};
 use crate::lexer::Lexer;
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral, StringLiteral};
@@ -24,6 +24,7 @@ pub enum Precedence {
    PRODUCT,         // *
    PREFIX,          // -X or !X
    CALL,            // myFn(X)   
+   INDEX,           // array[idx]
 }
 
 lazy_static! {
@@ -38,6 +39,7 @@ lazy_static! {
       map.insert(TokenType::SLASH, Precedence::PRODUCT);
       map.insert(TokenType::ASTERISK, Precedence::PRODUCT);
       map.insert(TokenType::LPAREN, Precedence::CALL);
+      map.insert(TokenType::LBRACKET, Precedence::INDEX);
 
       map
    };
@@ -90,6 +92,7 @@ impl Parser {
       p.register_infix(TokenType::LT, Parser::parse_infix_expression);
       p.register_infix(TokenType::GT, Parser::parse_infix_expression);
       p.register_infix(TokenType::LPAREN, Parser::parse_call_expression);
+      p.register_infix(TokenType::LBRACKET, Parser::parse_index_expression);
 
       p
    }
@@ -480,6 +483,18 @@ impl Parser {
       }
 
       Some(list)
+   }
+
+   fn parse_index_expression(&mut self, left: Box<dyn Expression>) -> Option<Box<dyn Expression>> {
+      let cur_token: Token = self.cur_token.clone();
+      self.next_token();
+      let index: Box<dyn Expression> = self.parse_expression(Precedence::LOWEST).unwrap();
+      
+      if !self.expect_peek(TokenType::RBRACKET) {
+         return None
+      }
+
+      Some(Box::new(IndexExpression { token: cur_token, left, index }))
    }
 
 

@@ -15,6 +15,7 @@ pub enum ObjectTypes {
    FunctionObj,
    StringObj,
    BuiltInObj, 
+   ArrayObj,
 }
 impl ObjectTypes {
    pub fn to_string(&self) -> String {
@@ -27,6 +28,7 @@ impl ObjectTypes {
          Self::FunctionObj => "FUNCTION",
          Self::StringObj => "STRING",
          Self::BuiltInObj => "BUILTIN",
+         Self::ArrayObj => "ARRAY",
       }.to_string()
    }
 }
@@ -211,6 +213,34 @@ impl Object for BuiltIn {
 
    fn inspect(&self) -> String {
       "builtin function".into()
+   }
+
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+#[derive(Clone, Debug)] 
+pub struct Array {
+   pub elements: Vec<Box<dyn Object>>,
+}
+impl Object for Array {
+   fn r#type(&self) -> ObjectType {
+      ObjectTypes::ArrayObj.to_string()
+   }
+
+   fn inspect(&self) -> String {
+      let mut out: String = String::new();
+      let mut el: Vec<String> = Vec::new();
+
+      for e in &self.elements {
+         el.push(e.inspect())
+      }
+      out.push_str("[");
+      out.push_str(el.join(", ").as_str());
+      out.push_str("]");
+
+      out
    }
 
    fn as_any(&self) -> &dyn Any {
