@@ -506,3 +506,33 @@ impl Expression for CallExpression {
       self
    }
 }
+
+
+
+#[derive(Debug, Clone)]
+pub struct StringLiteral {
+   token: Token,
+   value: String,
+}
+impl Node for StringLiteral {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      self.token.literal.clone()
+   }
+
+   fn node_as_any(&self) -> &dyn Any {
+      self
+   }
+}
+impl Expression for StringLiteral {
+   fn expression_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+   fn as_node(&self) -> &dyn Node {
+      self
+   }
+}

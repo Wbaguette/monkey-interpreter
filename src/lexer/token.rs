@@ -16,7 +16,7 @@ impl Token {
 
 #[derive(Debug, Clone, PartialEq, Hash, Eq, Copy)]
 pub enum TokenType {
-   // UNKNOWN: Only a thing when initializing the parser
+   // UNKNOWN: Only a thing when initializing the parser. Its never used other than then
    UNKNOWN,
 
    // Operators
@@ -49,6 +49,9 @@ pub enum TokenType {
    IF,
    ELSE,
    RETURN,
+
+   // Data Types
+   STRING,
 }
 
 lazy_static! {

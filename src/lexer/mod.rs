@@ -79,11 +79,26 @@ impl Lexer {
       }
    }
 
+   fn read_string(&mut self) -> String {
+      let pos: usize = self.position + 1;
+      loop {
+         self.read_char();
+         if self.ch == '"' || self.ch == '\0' {
+            break
+         }
+      }
+
+      self.input[pos..self.position].into()
+   }
+
    pub fn next_token(&mut self) -> Result<Token> {
 
       self.eat_whitespace();
 
       let tok: Token = match self.ch {
+         '"' => {
+            Token::new(TokenType::STRING, self.read_string().as_str())
+         },
          '=' => {
             if self.peek_char() == '=' {
                let ch: char = self.ch;
