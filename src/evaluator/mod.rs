@@ -202,9 +202,20 @@ fn eval_infix_expression(operator: String, left: Box<dyn Object>, right: Box<dyn
       return native_bool_to_boolean_object(left.inspect() != right.inspect())
    } else if left.r#type() != right.r#type() {
       return Box::new(Error::new(format!("type mismatch: {} {} {}", left.r#type(), operator, right.r#type())))
-   } 
+   } else if left.r#type() == ObjectTypes::StringObj.to_string() && right.r#type() == ObjectTypes::StringObj.to_string() {
+      return eval_string_infix_expression(operator, left, right);
+   }
    
    Box::new(Error::new(format!("unknown operator: {} {} {}", left.r#type(), operator, right.r#type())))
+}
+
+fn eval_string_infix_expression(operator: String, left: Box<dyn Object>, right: Box<dyn Object>) -> Box<dyn Object> {
+   if operator != "+" {
+      return Box::new(Error::new(format!("unknown operator: {} {} {}", left.r#type(), operator, right.r#type())))
+   }
+   let left_val: String = left.as_any().downcast_ref::<MkyString>().unwrap().value.clone();
+   let right_val: String = right.as_any().downcast_ref::<MkyString>().unwrap().value.clone();
+   return Box::new(MkyString { value: format!("{}{}", left_val, right_val)})
 }
 
 fn eval_integer_infix_expression(operator: String, left: Box<dyn Object>, right: Box<dyn Object>) -> Box<dyn Object> {

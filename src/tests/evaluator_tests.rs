@@ -256,6 +256,7 @@ fn test_error_handling() {
       "unknown operator: BOOLEAN + BOOLEAN").test_me();
 
    ErrorMessageTest::new("foobar", "identifier not found: foobar").test_me();
+   ErrorMessageTest::new("\"Hello\" - \"World\"", "unknown operator: STRING - STRING").test_me();
 }
 
 #[test]
@@ -309,6 +310,21 @@ fn test_closures() {
 #[test]
 fn test_string_literal() {
    let input: String = String::from("\"Hello World!\"");
+   match test_eval(input) {
+      Some(eval) => {
+         if let Some(str_obj) = eval.as_any().downcast_ref::<MkyString>() {
+            assert_eq!(str_obj.value, "Hello World!")
+         } else {
+            panic!("object returned from test_eval is not a Monkey String")
+         }
+      }
+      None => panic!("test_eval returned None")
+   }
+}
+
+#[test]
+fn test_string_concat() {
+   let input: String = String::from("\"Hello\" + \" \" + \"World!\"");
    match test_eval(input) {
       Some(eval) => {
          if let Some(str_obj) = eval.as_any().downcast_ref::<MkyString>() {
