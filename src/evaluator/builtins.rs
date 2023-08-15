@@ -141,10 +141,10 @@ fn append(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
 
          return Box::new(Array { elements: cloned_elements_1 })
       } else {
-         return Box::new(Error::new(format!("second argument to 'sort' must be ARRAY, got {}", arr2.r#type())))
+         return Box::new(Error::new(format!("second argument to 'append' must be ARRAY, got {}", arr2.r#type())))
       }
    } else {
-      return Box::new(Error::new(format!("first argument to 'sort' must be ARRAY, got {}", arr1.r#type())))
+      return Box::new(Error::new(format!("first argument to 'append' must be ARRAY, got {}", arr1.r#type())))
    }
 }
 
