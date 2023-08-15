@@ -16,6 +16,8 @@ lazy_static! {
       map.insert("rest".to_string(), BuiltIn { func: rest });
       map.insert("push".to_string(), BuiltIn { func: push });
       map.insert("puts".to_string(), BuiltIn { func: puts });
+      map.insert("append".to_string(), BuiltIn { func: append });
+      // map.insert("clear".to_string(), BuiltIn { func: clear });
 
       map
    };
@@ -123,3 +125,39 @@ fn puts(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
 
    Box::new(NULL)
 }
+
+fn append(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
+   if args.len() != 2 {
+      return Box::new(Error::new(format!("wrong number of arguments. got={}, want=2", args.len())))
+   }
+   let arr1: &Box<dyn Object> = args.get(0).unwrap();
+   let arr2: &Box<dyn Object> = args.get(1).unwrap();
+
+   if let Some(array1) = arr1.as_any().downcast_ref::<Array>() {
+      if let Some(array2) = arr2.as_any().downcast_ref::<Array>() {
+         let mut cloned_elements_1: Vec<Box<dyn Object>> = array1.elements.clone();
+         let mut cloned_elements_2: Vec<Box<dyn Object>> = array2.elements.clone();
+         cloned_elements_1.append(&mut cloned_elements_2);
+
+         return Box::new(Array { elements: cloned_elements_1 })
+      } else {
+         return Box::new(Error::new(format!("second argument to 'sort' must be ARRAY, got {}", arr2.r#type())))
+      }
+   } else {
+      return Box::new(Error::new(format!("first argument to 'sort' must be ARRAY, got {}", arr1.r#type())))
+   }
+}
+
+// fn clear(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
+//    if args.len() != 1 {
+//       return Box::new(Error::new(format!("wrong number of arguments. got={}, want=1", args.len())))
+//    }
+//    let arg: &Box<dyn Object> = args.get(0).unwrap();
+
+//    if let Some(array) = arg.as_any().downcast_ref::<Array>() {
+//       array.elements.clear();
+//       Box::new(Boolean { value: true })
+//    } else {
+//       return Box::new(Error::new(format!("argument to 'clear' must be ARRAY, got {}", arg.r#type())))
+//    }
+// }

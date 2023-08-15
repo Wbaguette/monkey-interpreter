@@ -44,8 +44,6 @@ pub fn start<R: BufRead, W: Write>(mut reader: R, mut writer: W) {
                },
                None => {}
             }
-
-            // write!(writer,"{}\n", program.string()).expect("Failed to write AST");
          },
          Err(e) => println!("Error reading input: {}", e),
       }

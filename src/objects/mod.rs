@@ -51,6 +51,20 @@ impl std::fmt::Debug for dyn Object {
       f.write_str(self.inspect().as_str())
    }
 }
+// impl Eq for dyn Object {}
+// impl PartialEq<dyn Object> for dyn Object {
+//    fn eq(&self, other: &dyn Object) -> bool {
+//       std::ptr::eq(self, other)
+//    }
+// }
+// impl Ord for dyn Object {
+//    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+       
+//    }
+// }
+// impl PartialOrd for dyn Object {
+
+// }
 dyn_clone::clone_trait_object!(Object);
 
 
