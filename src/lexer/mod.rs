@@ -133,6 +133,7 @@ impl Lexer {
          '"' => Token::new(TokenType::STRING, self.read_string().as_str()),
          '[' => Token::new(TokenType::LBRACKET, "["),
          ']' => Token::new(TokenType::RBRACKET, "]"),
+         ':' => Token::new(TokenType::COLON, ":"),
       
          '\0' => Token::new(TokenType::EOF, ""),
 

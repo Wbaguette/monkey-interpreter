@@ -1,11 +1,12 @@
-#![allow(unused)]
+#[allow(unused)]
 #[cfg(test)]
 
 use crate::lexer::token::{Token, TokenType};
-use crate::parser::ast::{Program, LetStatement, Identifier, Node};
 
 #[test]
 fn test_string() {
+   use crate::parser::ast::{Program, LetStatement, Identifier, Node};
+
    let program: Program = Program { 
       
       statements: vec![

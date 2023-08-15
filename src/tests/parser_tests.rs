@@ -1,14 +1,16 @@
 #![allow(unused)]
+use crate::objects::MkyString;
 #[cfg(test)]
 
 use crate::parser::ast::Program;
-use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression, BlockStatement, StringLiteral, ArrayLiteral, IndexExpression};
+use crate::parser::ast::{Statement, LetStatement, Node, ReturnStatement, ExpressionStatement, Identifier, IntegerLiteral, Expression, PrefixExpression, InfixExpression, Boolean, IfExpression, FunctionLiteral, CallExpression, BlockStatement, StringLiteral, ArrayLiteral, IndexExpression, HashLiteral};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
 use color_eyre::owo_colors::OwoColorize;
 use std::any::Any;
-
+use std::collections::HashMap;
+use maplit::hashmap;
 
 
 
@@ -714,6 +716,64 @@ fn test_parsing_index_expressions() {
          test_infix_expression(&index_expr.index, 1, "+".to_string(), 1)
       } else {
          panic!("exp is not IndexExpression")
+      }
+   }
+}
+
+#[test]
+fn test_parsing_hash_literals_string_keys() {
+   let input: String = String::from("{\"one\": 1, \"two\": 2, \"three\": 3}");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+   check_parser_errors(&parser); 
+
+   if let Some(stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(hash_literal) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<HashLiteral>() {
+         assert_eq!(hash_literal.pairs.len(), 3);
+
+         let expected: HashMap<&str, i64> = hashmap! {
+            "one" => 1,
+            "two" => 2,
+            "three" => 3,
+         };
+
+         for (k, v) in &hash_literal.pairs {
+            if let Some(str_literal) = k.as_any().downcast_ref::<StringLiteral>() {
+               let expected_val: i64 = expected.get(str_literal.string().as_str()).unwrap().clone();
+               test_integer_literal(v, expected_val)
+            } else {
+               panic!("key is not a StringLiteral")
+            }
+         }
+      } else {
+         panic!("exp is not HashLiteral")
+      }
+   }
+}
+
+
+#[test]
+fn test_parsing_empty_hash_literal() {
+   let input: String = String::from("{}");
+
+   let mut lexer: Lexer = Lexer::new(input);
+   let mut parser: Parser = Parser::new(lexer);
+   let program: Program = match parser.parse_program() {
+      Ok(program) => program,
+      Err(e) => panic!("{}", e),
+   }; 
+   check_parser_errors(&parser); 
+
+   if let Some(stmt) = program.statements.get(0).unwrap().as_any().downcast_ref::<ExpressionStatement>() {
+      if let Some(hash_literal) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<HashLiteral>() {
+         assert_eq!(hash_literal.pairs.len(), 0);
+      } else {
+         panic!("exp is not HashLiteral")
       }
    }
 }

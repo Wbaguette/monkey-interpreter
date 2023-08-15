@@ -1,8 +1,6 @@
-#[allow(unused)]
-
 use dyn_clone::DynClone;
 use crate::lexer::token::Token;
-use std::any::Any;
+use std::{any::Any, collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher};
 
 pub trait Node: DynClone {
    fn token_literal(&self) -> &str;
@@ -23,8 +21,6 @@ impl std::fmt::Debug for dyn Statement {
 }
 dyn_clone::clone_trait_object!(Statement);
 
-
-
 pub trait Expression: Node + Any + DynClone {
    fn expression_node(&self);
    fn as_any(&self) -> &dyn Any;
@@ -37,7 +33,19 @@ impl std::fmt::Debug for dyn Expression {
 }
 dyn_clone::clone_trait_object!(Expression);
 
-
+impl Eq for dyn Expression {}
+impl std::hash::Hash for dyn Expression {
+   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+      let mut hasher: DefaultHasher = DefaultHasher::new();
+      std::ptr::hash(self, &mut hasher);
+      hasher.finish().hash(state)
+   }
+}
+impl PartialEq<dyn Expression> for dyn Expression {
+   fn eq(&self, other: &dyn Expression) -> bool {
+      std::ptr::eq(self, other)
+   }
+}
 
 
 
@@ -71,7 +79,7 @@ impl Node for Program {
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
    pub token: Token,  // this should always be TokenType::IDENT   (binding)
    pub value: String,
@@ -98,8 +106,6 @@ impl Expression for Identifier {
       self
    }
 }
-
-
 
 
 
@@ -217,7 +223,7 @@ impl Statement for ExpressionStatement {
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntegerLiteral {
    pub token: Token,
    pub value: i64,
@@ -320,7 +326,7 @@ impl Expression for InfixExpression {
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Boolean {
    pub token: Token,
    pub value: bool,
@@ -509,7 +515,7 @@ impl Expression for CallExpression {
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringLiteral {
    pub token: Token,
    pub value: String,
@@ -607,6 +613,46 @@ impl Node for IndexExpression {
    }
 }
 impl Expression for IndexExpression {
+   fn expression_node(&self) {}
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+   fn as_node(&self) -> &dyn Node {
+      self
+   }
+}
+
+
+
+#[derive(Debug, Clone)]
+pub struct HashLiteral {
+   pub token: Token,
+   pub pairs: HashMap<Box<dyn Expression>, Box<dyn Expression>>,
+}
+impl Node for HashLiteral {
+   fn token_literal(&self) -> &str {
+      self.token.literal.as_str()
+   }
+
+   fn string(&self) -> String {
+      let mut out: String = String::new();
+      let mut pairs: Vec<String> = Vec::new();
+
+      for (k, v) in &self.pairs {
+         pairs.push(format!("{}:{}", k.string(), v.string()))
+      }
+      out.push_str("{");
+      out.push_str(pairs.join(", ").as_str());
+      out.push_str("}");
+
+      out
+   }
+
+   fn node_as_any(&self) -> &dyn Any {
+      self
+   }
+}
+impl Expression for HashLiteral {
    fn expression_node(&self) {}
    fn as_any(&self) -> &dyn Any {
       self

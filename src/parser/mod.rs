@@ -10,7 +10,7 @@ use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::{Expression, ExpressionStatement, IntegerLiteral, StringLiteral};
 use color_eyre::Result;
 
-use self::ast::ArrayLiteral;
+use self::ast::{ArrayLiteral, HashLiteral};
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn Expression>>;
 type InfixParseFn = fn(&mut Parser, Box<dyn Expression>) -> Option<Box<dyn Expression>>;
@@ -82,6 +82,7 @@ impl Parser {
       p.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
       p.register_prefix(TokenType::STRING, Parser::parse_string_literal);
       p.register_prefix(TokenType::LBRACKET, Parser::parse_array_literal);
+      p.register_prefix(TokenType::LBRACE, Parser::parse_hash_literal);
 
       p.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
       p.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -495,6 +496,33 @@ impl Parser {
       }
 
       Some(Box::new(IndexExpression { token: cur_token, left, index }))
+   }
+
+   fn parse_hash_literal(&mut self) -> Option<Box<dyn Expression>> {
+      let cur_token: Token = self.cur_token.clone();
+      let mut pairs: HashMap<Box<dyn Expression>, Box<dyn Expression>> = HashMap::new();
+      
+      while !self.peek_token_is(TokenType::RBRACE) {
+         self.next_token();
+         let key: Box<dyn Expression> = self.parse_expression(Precedence::LOWEST).unwrap();
+         if !self.expect_peek(TokenType::COLON) {
+            return None
+         }
+
+         self.next_token();
+         let value: Box<dyn Expression> = self.parse_expression(Precedence::LOWEST).unwrap();
+         pairs.insert(key, value);
+
+         if !self.peek_token_is(TokenType::RBRACE) && !self.expect_peek(TokenType::COMMA) {
+            return None
+         }
+      }
+
+      if !self.expect_peek(TokenType::RBRACE) {
+         return None
+      }
+
+      Some(Box::new(HashLiteral { token: cur_token, pairs}))
    }
 
 

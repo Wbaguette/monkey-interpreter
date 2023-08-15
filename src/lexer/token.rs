@@ -42,6 +42,7 @@ pub enum TokenType {
    NOTEQ,
    LBRACKET,
    RBRACKET,
+   COLON,
 
    // Keywords
    FUNCTION,

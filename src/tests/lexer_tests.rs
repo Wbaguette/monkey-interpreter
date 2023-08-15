@@ -73,6 +73,7 @@ fn test_next_token_2() {
          \"foobar\"
          \"foo bar\"
          [1, 2];
+         {\"foo\": \"bar\"}
       "
       );
    
@@ -171,7 +172,13 @@ fn test_next_token_2() {
       Test::new(TokenType::RBRACKET, "]"),
       Test::new(TokenType::SEMICOLON, ";"),
 
-      Test::new(TokenType::EOF, ""),
+      Test::new(TokenType::LBRACE, "{"),
+      Test::new(TokenType::STRING, "foo"),
+      Test::new(TokenType::COLON, ":"),
+      Test::new(TokenType::STRING, "bar"),
+      Test::new(TokenType::RBRACE, "}"),
+      
+      Test::new(TokenType::EOF, "")
    ];
 
    for test in tests {

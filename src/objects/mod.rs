@@ -1,6 +1,6 @@
 pub mod environment;
 
-use std::any::Any;
+use std::{any::Any, collections::{hash_map::DefaultHasher, HashMap}, hash::Hasher};
 use dyn_clone::DynClone;
 use crate::parser::ast::{Identifier, BlockStatement, Node};
 use self::environment::Environment;
@@ -16,6 +16,7 @@ pub enum ObjectTypes {
    StringObj,
    BuiltInObj, 
    ArrayObj,
+   HashObj,
 }
 impl ObjectTypes {
    pub fn to_string(&self) -> String {
@@ -29,9 +30,12 @@ impl ObjectTypes {
          Self::StringObj => "STRING",
          Self::BuiltInObj => "BUILTIN",
          Self::ArrayObj => "ARRAY",
+         Self::HashObj => "HASH",
       }.to_string()
    }
 }
+
+
 
 type ObjectType = String;
 pub trait Object: DynClone {
@@ -48,6 +52,14 @@ dyn_clone::clone_trait_object!(Object);
 
 
 
+#[derive(Clone, Debug, Eq, PartialEq)] 
+pub struct HashKey {
+   pub r#type: ObjectType,
+   pub value: u64,
+}
+pub trait Hashable {
+   fn hash_key(&self) -> HashKey;
+}
 
 
 
@@ -71,6 +83,13 @@ impl Object for Integer {
       self
    }
 }
+impl Hashable for Integer {
+   fn hash_key(&self) -> HashKey {
+      HashKey { r#type: self.r#type(), value: self.value as u64 }
+   }
+}
+
+
 
 #[derive(Copy, Clone, Debug, PartialEq)] 
 pub struct Boolean {
@@ -89,6 +108,21 @@ impl Object for Boolean {
       self
    }
 }
+impl Hashable for Boolean {
+   fn hash_key(&self) -> HashKey {
+      let val: u64;
+
+      if self.value {
+         val = 1
+      } else {
+         val = 0
+      }
+
+      HashKey { r#type: self.r#type(), value: val }
+   }
+}
+
+
 
 #[derive(Copy, Clone, Debug, PartialEq)] 
 pub struct Null;
@@ -105,6 +139,8 @@ impl Object for Null {
       self
    }
 }
+
+
 
 #[derive(Clone, Debug)]
 pub struct ReturnValue {
@@ -123,6 +159,8 @@ impl Object for ReturnValue {
       self
    }
 }
+
+
 
 #[derive(Clone, Debug, PartialEq)] 
 pub struct Error {
@@ -146,6 +184,8 @@ impl Object for Error {
       self
    }
 }
+
+
 
 #[derive(Clone, Debug)] 
 pub struct Function {
@@ -181,6 +221,8 @@ impl Object for Function {
    }
 }
 
+
+
 // MkyString => "Monkey String" since using "String" as a name is no bueno
 #[derive(Clone, Debug)] 
 pub struct MkyString {
@@ -199,6 +241,16 @@ impl Object for MkyString {
       self
    }
 }
+impl Hashable for MkyString {
+   fn hash_key(&self) -> HashKey {
+      let mut hasher: DefaultHasher = DefaultHasher::new();
+      hasher.write(self.value.as_bytes());
+      
+      HashKey { r#type: self.r#type(), value: hasher.finish() }
+   }
+}
+
+
 
 // Bill Tin LULW
 type BuiltInFunction = fn(args: Vec<Box<dyn Object>>) -> Box<dyn Object>;
@@ -220,6 +272,8 @@ impl Object for BuiltIn {
    }
 }
 
+
+
 #[derive(Clone, Debug)] 
 pub struct Array {
    pub elements: Vec<Box<dyn Object>>,
@@ -239,6 +293,42 @@ impl Object for Array {
       out.push_str("[");
       out.push_str(el.join(", ").as_str());
       out.push_str("]");
+
+      out
+   }
+
+   fn as_any(&self) -> &dyn Any {
+      self
+   }
+}
+
+
+
+#[derive(Clone, Debug)] 
+pub struct HashPair {
+   pub key: Box<dyn Object>,
+   pub value: Box<dyn Object>,
+}
+
+#[derive(Clone, Debug)] 
+pub struct Hash {
+   pub pairs: HashMap<HashKey, HashPair>
+}
+impl Object for Hash {
+   fn r#type(&self) -> ObjectType {
+      ObjectTypes::HashObj.to_string()
+   }
+
+   fn inspect(&self) -> String {
+      let mut out: String = String::new();
+      let mut pairs: Vec<String> = Vec::new();
+
+      for (_, pair) in &self.pairs {
+         pairs.push(format!("{}: {}", pair.key.inspect(), pair.value.inspect()))
+      }
+      out.push_str("{");
+      out.push_str(pairs.join(", ").as_str());
+      out.push_str("}");
 
       out
    }
