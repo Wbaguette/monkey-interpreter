@@ -311,6 +311,7 @@ fn test_error_handling() {
 
    ErrorMessageTest::new("foobar", "identifier not found: foobar").test_me();
    ErrorMessageTest::new("\"Hello\" - \"World\"", "unknown operator: STRING - STRING").test_me();
+   ErrorMessageTest::new("{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION").test_me();
 }
 
 #[test]
@@ -473,4 +474,16 @@ fn test_hash_literals() {
       None => panic!("test_eval returned None.")
    }
 
+}
+
+#[test]
+fn test_hash_index_expressions() {
+   // We can reuse this test struct but for hashes 
+   ArrayIndexExpressionsTest::new("{\"foo\": 5}[\"foo\"]", Some(5)).test_me();
+   ArrayIndexExpressionsTest::new("{\"foo\": 5}[\"bar\"]", None).test_me();
+   ArrayIndexExpressionsTest::new("let key = \"foo\"; {\"foo\": 5}[key]", Some(5)).test_me();
+   ArrayIndexExpressionsTest::new("{}[\"foo\"]", None).test_me();
+   ArrayIndexExpressionsTest::new("{5: 5}[5]", Some(5)).test_me();
+   ArrayIndexExpressionsTest::new("{true: 5}[true]", Some(5)).test_me();
+   ArrayIndexExpressionsTest::new("{false: 5}[false]", Some(5)).test_me();
 }

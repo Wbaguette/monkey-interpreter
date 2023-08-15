@@ -33,6 +33,7 @@ impl std::fmt::Debug for dyn Expression {
 }
 dyn_clone::clone_trait_object!(Expression);
 
+// Expression trait objects end up being used as keys in a HashMap that is used for the interpreter's version of a HashMap
 impl Eq for dyn Expression {}
 impl std::hash::Hash for dyn Expression {
    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

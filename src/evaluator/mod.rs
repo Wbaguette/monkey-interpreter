@@ -398,6 +398,8 @@ fn unwrap_return_value(obj: Option<Box<dyn Object>>) -> Option<Box<dyn Object>> 
 fn eval_index_expression(left: Box<dyn Object>, index: Box<dyn Object>) -> Box<dyn Object> {
    if left.r#type() == ObjectTypes::ArrayObj.to_string() && index.r#type() == ObjectTypes::IntegerObj.to_string() {
       return eval_array_index_expression(left, index)
+   } else if left.r#type() == ObjectTypes::HashObj.to_string() {
+      return eval_hash_index_expression(left, index)
    } else {
       return Box::new(Error::new(format!("index operator not supported: {}", left.r#type())))
    }
@@ -413,6 +415,19 @@ fn eval_array_index_expression(array: Box<dyn Object>, index: Box<dyn Object>) -
    }
 
    return array_obj.elements.get(idx as usize).unwrap().clone()
+}
+
+fn eval_hash_index_expression(hash: Box<dyn Object>, index: Box<dyn Object>) -> Box<dyn Object> {
+   let hash_obj: &Hash = hash.as_any().downcast_ref::<Hash>().unwrap();
+
+   if !index.is_hashable() {
+      return Box::new(Error::new(format!("unusable as hash key: {}", index.r#type())))
+   }
+
+   return match hash_obj.pairs.get(&index.downcast_hashable().unwrap().hash_key()) {
+      Some(hp) => hp.value.clone(),
+      None => Box::new(NULL)
+   }
 }
 
 fn eval_hash_literal(node: &HashLiteral, env: &mut Environment) -> Option<Box<dyn Object>> {
