@@ -574,5 +574,4 @@ impl Parser {
          None => Precedence::LOWEST,
       };
    }
-
 }
