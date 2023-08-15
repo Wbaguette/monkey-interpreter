@@ -1,13 +1,15 @@
 #![allow(unused)]
 
 use std::any::Any;
+use std::collections::HashMap;
+use maplit::hashmap;
 
 use crate::objects::environment::Environment;
-use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue, Function, MkyString, Array};
+use crate::objects::{Integer, Boolean, Object, Null, Error, ReturnValue, Function, MkyString, Array, Hash, Hashable};
 use crate::parser::Parser;
 use crate::lexer::Lexer;
 use crate::parser::ast::{Program, Node};
-use crate::evaluator::{eval, self, NULL};
+use crate::evaluator::{eval, self, NULL, TRUE, FALSE};
 
 #[cfg(test)]
 
@@ -428,4 +430,47 @@ fn test_array_index_expressions() {
    ArrayIndexExpressionsTest::new("let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", Some(2)).test_me();
    ArrayIndexExpressionsTest::new("[1, 2, 3][3]", None).test_me();
    ArrayIndexExpressionsTest::new("[1, 2, 3][-1]", None).test_me();
+}
+
+#[test]
+fn test_hash_literals() {
+   let input: String = String::from("
+      let two = \"two\";
+      {
+         \"one\": 10 - 9,
+         two: 1 + 1,
+         \"thr\" + \"ee\": 6 / 2,
+         4: 4,
+         true: 5,
+         false: 6
+      }
+   ");
+
+   match test_eval(input) {
+      Some(eval) => {
+         if let Some(hash_obj) = eval.as_any().downcast_ref::<Hash>() {
+            let expected: HashMap<crate::objects::HashKey, i64> = hashmap! { 
+               (MkyString{ value: "one".to_string()}).hash_key() => 1,
+               (MkyString{ value: "two".to_string()}).hash_key() => 2,
+               (MkyString{ value: "three".to_string()}).hash_key() => 3,
+               (Integer{ value: 4}).hash_key() => 4,
+               TRUE.hash_key() => 5,
+               FALSE.hash_key() => 6,
+            };
+            assert_eq!(hash_obj.pairs.len(), expected.len());
+
+            for (expected_key, expected_value) in &expected {
+               if let Some(pair) = hash_obj.pairs.get(expected_key) {
+                  test_integer_object(pair.value.clone(), expected_value.clone())
+               } else {
+                  panic!("no pair for given key in Pairs")
+               }
+            }
+         } else {
+            panic!("eval did not return Hash object. Got {}", eval.r#type())
+         }
+      }
+      None => panic!("test_eval returned None.")
+   }
+
 }

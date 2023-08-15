@@ -42,6 +42,9 @@ pub trait Object: DynClone {
    fn r#type(&self) -> ObjectType;
    fn inspect(&self) -> String;
    fn as_any(&self) -> &dyn Any;
+
+   fn is_hashable(&self) -> bool;
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>>;
 }
 impl std::fmt::Debug for dyn Object {
    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -52,7 +55,7 @@ dyn_clone::clone_trait_object!(Object);
 
 
 
-#[derive(Clone, Debug, Eq, PartialEq)] 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)] 
 pub struct HashKey {
    pub r#type: ObjectType,
    pub value: u64,
@@ -82,6 +85,14 @@ impl Object for Integer {
    fn as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_hashable(&self) -> bool {
+      true
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      Some(Box::new(*self))
+   }
 }
 impl Hashable for Integer {
    fn hash_key(&self) -> HashKey {
@@ -106,6 +117,14 @@ impl Object for Boolean {
 
    fn as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_hashable(&self) -> bool {
+      true
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      Some(Box::new(*self))
    }
 }
 impl Hashable for Boolean {
@@ -138,6 +157,14 @@ impl Object for Null {
    fn as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_hashable(&self) -> bool {
+      false
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      None
+   }
 }
 
 
@@ -157,6 +184,14 @@ impl Object for ReturnValue {
 
    fn as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_hashable(&self) -> bool {
+      false
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      None
    }
 }
 
@@ -182,6 +217,14 @@ impl Object for Error {
 
    fn as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_hashable(&self) -> bool {
+      false
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      None
    }
 }
 
@@ -219,6 +262,14 @@ impl Object for Function {
    fn as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_hashable(&self) -> bool {
+      false
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      None
+   }
 }
 
 
@@ -239,6 +290,14 @@ impl Object for MkyString {
 
    fn as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_hashable(&self) -> bool {
+      true
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      Some(Box::new(self.clone()))
    }
 }
 impl Hashable for MkyString {
@@ -270,6 +329,14 @@ impl Object for BuiltIn {
    fn as_any(&self) -> &dyn Any {
       self
    }
+
+   fn is_hashable(&self) -> bool {
+      false
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      None
+   }
 }
 
 
@@ -299,6 +366,14 @@ impl Object for Array {
 
    fn as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_hashable(&self) -> bool {
+      false
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      None
    }
 }
 
@@ -335,5 +410,13 @@ impl Object for Hash {
 
    fn as_any(&self) -> &dyn Any {
       self
+   }
+
+   fn is_hashable(&self) -> bool {
+      false
+   }
+
+   fn downcast_hashable(&self) -> Option<Box<dyn Hashable>> {
+      None
    }
 }

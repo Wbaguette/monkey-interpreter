@@ -1,15 +1,17 @@
 #[allow(unused)]
 pub mod builtins;
 
+use std::collections::HashMap;
+
 use crate::objects::environment::Environment;
-use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression, StringLiteral, ArrayLiteral, IndexExpression};
-use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function, MkyString, BuiltIn, Array};
+use crate::parser::ast::{Node, Program, IntegerLiteral, ExpressionStatement, Statement, Expression, Boolean, PrefixExpression, InfixExpression, BlockStatement, IfExpression, ReturnStatement, LetStatement, Identifier, FunctionLiteral, CallExpression, StringLiteral, ArrayLiteral, IndexExpression, HashLiteral};
+use crate::objects::{Object, Integer, Null, ObjectTypes, ReturnValue, Error, Function, MkyString, BuiltIn, Array, HashKey, HashPair, Hash};
 
 use self::builtins::lookup_builtins;
 
 pub const NULL: Null = Null{};
-const TRUE: crate::objects::Boolean  = crate::objects::Boolean { value: true };
-const FALSE: crate::objects::Boolean = crate::objects::Boolean { value: false };
+pub const TRUE: crate::objects::Boolean  = crate::objects::Boolean { value: true };
+pub const FALSE: crate::objects::Boolean = crate::objects::Boolean { value: false };
 fn native_bool_to_boolean_object(input: bool) -> Box<dyn Object> {
    if input {
       Box::new(TRUE)
@@ -18,7 +20,7 @@ fn native_bool_to_boolean_object(input: bool) -> Box<dyn Object> {
    }
 }
 
-// Match the current AST Node being evaluated and evaluate it (returns an Object trait object)
+// Match the current AST Node being evaluated and evaluate it; returning an Object trait object
 pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Object>> {
 
    if node.node_as_any().is::<Program>() {
@@ -74,6 +76,10 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
 
    if node.node_as_any().is::<Identifier>() {
       return eval_identifier(node.node_as_any().downcast_ref::<Identifier>().unwrap(), env)
+   }
+
+   if node.node_as_any().is::<HashLiteral>() {
+      return eval_hash_literal(node.node_as_any().downcast_ref::<HashLiteral>().unwrap(), env)
    }
 
    if node.node_as_any().is::<StringLiteral>() {
@@ -407,4 +413,29 @@ fn eval_array_index_expression(array: Box<dyn Object>, index: Box<dyn Object>) -
    }
 
    return array_obj.elements.get(idx as usize).unwrap().clone()
+}
+
+fn eval_hash_literal(node: &HashLiteral, env: &mut Environment) -> Option<Box<dyn Object>> {
+   let mut pairs: HashMap<HashKey, HashPair> = HashMap::new();
+
+   for (key_node, value_node) in &node.pairs {
+      let key: Box<dyn Object> = eval(Box::new(key_node.as_node()), env).unwrap();
+      if is_error(Some(&key)) {
+         return Some(key)
+      }
+      
+      if !key.is_hashable() {
+         return Some(Box::new(Error::new(format!("unusable as hash key: {}", key.r#type()))))
+      }
+      
+      let value: Box<dyn Object> = eval(Box::new(value_node.as_node()), env).unwrap();
+      if is_error(Some(&value)) {
+         return Some(value)
+      }
+
+      let hashed: HashKey = key.downcast_hashable().unwrap().hash_key();
+      pairs.insert(hashed, HashPair { key, value });
+   }
+
+   return Some(Box::new(Hash { pairs }))
 }
