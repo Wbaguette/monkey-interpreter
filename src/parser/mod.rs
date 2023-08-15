@@ -469,8 +469,10 @@ impl Parser {
       }
 
       self.next_token();
-      // If it panics here on unwrap then it just means that the expression is unsupported or syntactically wrong
-      list.push(self.parse_expression(Precedence::LOWEST).unwrap());
+      match self.parse_expression(Precedence::LOWEST) {
+         Some(expr) => list.push(expr),
+         None => return None
+      }
 
       while self.peek_token_is(TokenType::COMMA) {
          self.next_token();
