@@ -8,7 +8,7 @@ use color_eyre::owo_colors::OwoColorize;
 lazy_static! {
    static ref BUILTINS: HashMap<String, BuiltIn> = {
       let mut map = HashMap::new();
-      map.insert("quit".to_string(), BuiltIn { func: quit });
+      map.insert("exit".to_string(), BuiltIn { func: exit });
 
       map.insert("len".to_string(), BuiltIn { func: len });
       map.insert("first".to_string(), BuiltIn { func: first });
@@ -27,12 +27,12 @@ pub fn lookup_builtins(val: &String) -> Option<BuiltIn> {
    BUILTINS.get(val).cloned()
 }
 
-fn quit(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
+fn exit(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
    if args.is_empty() {
       eprintln!("{}", "\nExiting Monkey REPL...".bright_red().bold());
       process::exit(0)
    } else {
-      return Box::new(Error::new(format!("'quit()' takes 0 arguments. got={}", args.len())))
+      return Box::new(Error::new(format!("'exit()' takes 0 arguments. got={}", args.len())))
    }
 }
 
