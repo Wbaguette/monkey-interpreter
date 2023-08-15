@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use crate::objects::Object;
 
 #[derive(Clone, Debug)]

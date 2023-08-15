@@ -1,4 +1,3 @@
-#[allow(unused)]
 #[cfg(test)]
 
 use crate::lexer::token::{Token, TokenType};
@@ -25,7 +24,5 @@ fn test_string() {
          }),
       ]
    };
-   assert_eq!(program.string(), "let myVar = anotherVar;")
+   assert_eq!(program.string(), "let myVar = anotherVar;", "\nprogram.string() does not match expected string representation.")
 }
-
-

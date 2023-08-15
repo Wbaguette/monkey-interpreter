@@ -1,5 +1,3 @@
-#[allow(unused)]
-
 use crate::objects::*;
 use super::NULL;
 use std::collections::HashMap;

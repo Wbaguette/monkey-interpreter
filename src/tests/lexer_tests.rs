@@ -42,8 +42,8 @@ fn test_next_token_1() {
 
    for test in tests {
       let tok: Token = lexer.next_token().unwrap();
-      assert_eq!(tok.token_type, test.expected_tok_type);
-      assert_eq!(tok.literal, test.expected_literal);
+      assert_eq!(tok.token_type, test.expected_tok_type, "\nLexer got a different token type then expected.");
+      assert_eq!(tok.literal, test.expected_literal, "\nLexer got a different literal then expected.");
    }
 }
 
@@ -183,7 +183,7 @@ fn test_next_token_2() {
 
    for test in tests {
       let tok: Token = lexer.next_token().unwrap();
-      assert_eq!(tok.token_type, test.expected_tok_type);
-      assert_eq!(tok.literal, test.expected_literal);
+      assert_eq!(tok.token_type, test.expected_tok_type, "\nLexer got a different token type then expected.");
+      assert_eq!(tok.literal, test.expected_literal, "\nLexer got a different literal then expected.");
    }
 }

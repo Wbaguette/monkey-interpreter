@@ -1,3 +1,18 @@
+/*
+   Author: Jean-Pierre Derbes
+   Email: jderbes2021@my.fit.edu
+   School: Florida Institute of Technology 
+
+   References: https://interpreterbook.com/
+
+   Short Description:   This is a Rust implementation of the above referenced book. 
+                        The book uses Golang to teach an introduction to Interpreters.
+
+                        I would highly recommend checking out this website and book as I
+                        personally learned a ton from it. (No, I am not sponsored)
+
+*/
+
 mod lexer;
 mod parser;
 mod repl;

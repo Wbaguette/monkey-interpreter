@@ -1,4 +1,3 @@
-#[allow(unused)]
 pub mod builtins;
 
 use std::collections::HashMap;
@@ -30,24 +29,25 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
 
    if node.node_as_any().is::<PrefixExpression>() {
       let node_to_eval: &PrefixExpression = node.node_as_any().downcast_ref::<PrefixExpression>().unwrap();
-      let right: Box<dyn Object> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node()), env).unwrap();
-      if is_error(Some(&right)) {
-         return Some(right)
+      let right: Option<Box<dyn Object>> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node()), env);
+      if is_error(right.as_ref()) {
+         return right
       }
-      return Some(eval_prefix_expression(node_to_eval.operator.clone(), right))
+      
+      return Some(eval_prefix_expression(node_to_eval.operator.clone(), right.unwrap()))
    }
 
    if node.node_as_any().is::<InfixExpression>() {
       let node_to_eval: &InfixExpression = node.node_as_any().downcast_ref::<InfixExpression>().unwrap();
-      let left: Box<dyn Object> = eval(Box::new(node_to_eval.left.as_ref().unwrap().as_node()), env).unwrap();
-      if is_error(Some(&left)) {
-         return Some(left)
+      let left: Option<Box<dyn Object>> = eval(Box::new(node_to_eval.left.as_ref().unwrap().as_node()), env);
+      if is_error(left.as_ref()) {
+         return left
       }
-      let right: Box<dyn Object> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node()), env).unwrap();
-      if is_error(Some(&right)) {
-         return Some(right)
+      let right: Option<Box<dyn Object>> = eval(Box::new(node_to_eval.right.as_ref().unwrap().as_node()), env);
+      if is_error(right.as_ref()) {
+         return right
       }
-      return Some(eval_infix_expression(node_to_eval.operator.clone(), left, right))
+      return Some(eval_infix_expression(node_to_eval.operator.clone(), left.unwrap(), right.unwrap()))
    }
 
    if node.node_as_any().is::<FunctionLiteral>() {
@@ -57,16 +57,16 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
 
    if node.node_as_any().is::<CallExpression>() {
       let ce_node: &CallExpression = node.node_as_any().downcast_ref::<CallExpression>().unwrap();
-      let function: Box<dyn Object> = eval(Box::new(ce_node.function.as_ref().unwrap().as_node()), env).unwrap();
-      if is_error(Some(&function)) {
-         return Some(function)
+      let function: Option<Box<dyn Object>> = eval(Box::new(ce_node.function.as_ref().unwrap().as_node()), env);
+      if is_error(function.as_ref()) {
+         return function
       }
 
       let args: Vec<Box<dyn Object>> = eval_expressions(ce_node.arguments.as_ref().clone(), env);
       if args.len() == 1 && is_error(args.get(0)) {
          return Some(args.get(0).unwrap().clone())
       }
-      return apply_function(function, args)
+      return apply_function(function.unwrap(), args)
    }
 
    if node.node_as_any().is::<ExpressionStatement>() {
@@ -101,20 +101,20 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
 
    if node.node_as_any().is::<LetStatement>() {
       let node_to_eval: &LetStatement = node.node_as_any().downcast_ref::<LetStatement>().unwrap();
-      let value: Box<dyn Object> = eval(Box::new(node_to_eval.value.as_ref().unwrap().as_node()), env).unwrap();
-      if is_error(Some(&value)) {
-         return Some(value)
+      let value: Option<Box<dyn Object>> = eval(Box::new(node_to_eval.value.as_ref().unwrap().as_node()), env);
+      if is_error(value.as_ref()) {
+         return value
       }
-      env.set(&node_to_eval.name.value, value);
+      env.set(&node_to_eval.name.value, value.unwrap());
    }
 
    if node.node_as_any().is::<ReturnStatement>() {
       let return_value_to_eval: &Box<dyn Expression> = node.node_as_any().downcast_ref::<ReturnStatement>().unwrap().return_value.as_ref().unwrap();
-      let value: Box<dyn Object> = eval(Box::new(return_value_to_eval.as_node()), env).unwrap();       
-      if is_error(Some(&value)) {
-         return Some(value)
+      let value: Option<Box<dyn Object>> = eval(Box::new(return_value_to_eval.as_node()), env);       
+      if is_error(value.as_ref()) {
+         return value
       }
-      return Some(Box::new(ReturnValue { value }))
+      return Some(Box::new(ReturnValue { value: value.unwrap() }))
    }
 
    if node.node_as_any().is::<BlockStatement>() {
@@ -130,17 +130,17 @@ pub fn eval(node: Box<&dyn Node>, env: &mut Environment) -> Option<Box<dyn Objec
    if node.node_as_any().is::<IndexExpression>() {
       let node_to_eval: &IndexExpression = node.node_as_any().downcast_ref::<IndexExpression>().unwrap();
 
-      let left: Box<dyn Object> = eval(Box::new(node_to_eval.left.as_node()), env).unwrap();
-      if is_error(Some(&left)) {
-         return Some(left)
+      let left: Option<Box<dyn Object>> = eval(Box::new(node_to_eval.left.as_node()), env);
+      if is_error(left.as_ref()) {
+         return left
       }
 
-      let index: Box<dyn Object> = eval(Box::new(node_to_eval.index.as_node()), env).unwrap();
-      if is_error(Some(&index)) {
-         return Some(index)
+      let index: Option<Box<dyn Object>> = eval(Box::new(node_to_eval.index.as_node()), env);
+      if is_error(index.as_ref()) {
+         return index
       }
       
-      return Some(eval_index_expression(left, index));
+      return Some(eval_index_expression(left.unwrap(), index.unwrap()));
    }
 
    if node.node_as_any().is::<Boolean>() {
@@ -275,12 +275,12 @@ fn eval_integer_infix_expression(operator: String, left: Box<dyn Object>, right:
 }
 
 fn eval_if_expression(if_expr: &IfExpression, env: &mut Environment) -> Box<dyn Object> {
-   let condition: Box<dyn Object> = eval(Box::new(if_expr.condition.as_ref().unwrap().as_node()), env).unwrap();
-   if is_error(Some(&condition)) {
-      return condition
+   let condition: Option<Box<dyn Object>> = eval(Box::new(if_expr.condition.as_ref().unwrap().as_node()), env);
+   if is_error(condition.as_ref()) {
+      return condition.unwrap()
    }
 
-   if is_truthy(condition) {
+   if is_truthy(condition.unwrap()) {
       return eval(Box::new(if_expr.consequence.as_ref().unwrap().as_node()), env).unwrap()
    } else if if_expr.alternative.is_some() {
       return eval(Box::new(if_expr.alternative.as_ref().unwrap().as_node()), env).unwrap()
@@ -346,11 +346,11 @@ fn eval_expressions(exps: Option<&Vec<Box<dyn Expression>>>, env: &mut Environme
    match exps {
       Some(exprs) => {
          for e in exprs {
-            let eval: Box<dyn Object> = eval(Box::new(e.as_node()), env).unwrap();
-            if is_error(Some(&eval)) {
-               return vec![eval]
+            let eval: Option<Box<dyn Object>> = eval(Box::new(e.as_node()), env);
+            if is_error(eval.as_ref()) {
+               return vec![eval.unwrap()]
             }
-            result.push(eval);
+            result.push(eval.unwrap());
          }
       },
 
@@ -434,22 +434,23 @@ fn eval_hash_literal(node: &HashLiteral, env: &mut Environment) -> Option<Box<dy
    let mut pairs: HashMap<HashKey, HashPair> = HashMap::new();
 
    for (key_node, value_node) in &node.pairs {
-      let key: Box<dyn Object> = eval(Box::new(key_node.as_node()), env).unwrap();
-      if is_error(Some(&key)) {
-         return Some(key)
+      let key: Option<Box<dyn Object>> = eval(Box::new(key_node.as_node()), env);
+      if is_error(key.as_ref()) {
+         return key
       }
       
+      let key: Box<dyn Object> = key.unwrap();
       if !key.is_hashable() {
          return Some(Box::new(Error::new(format!("unusable as hash key: {}", key.r#type()))))
       }
       
-      let value: Box<dyn Object> = eval(Box::new(value_node.as_node()), env).unwrap();
-      if is_error(Some(&value)) {
-         return Some(value)
+      let value: Option<Box<dyn Object>> = eval(Box::new(value_node.as_node()), env);
+      if is_error(value.as_ref()) {
+         return value
       }
 
       let hashed: HashKey = key.downcast_hashable().unwrap().hash_key();
-      pairs.insert(hashed, HashPair { key, value });
+      pairs.insert(hashed, HashPair { key, value: value.unwrap() });
    }
 
    return Some(Box::new(Hash { pairs }))
