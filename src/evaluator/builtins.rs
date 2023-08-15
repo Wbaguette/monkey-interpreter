@@ -17,7 +17,7 @@ lazy_static! {
       map.insert("push".to_string(), BuiltIn { func: push });
       map.insert("puts".to_string(), BuiltIn { func: puts });
       map.insert("append".to_string(), BuiltIn { func: append });
-      // map.insert("clear".to_string(), BuiltIn { func: clear });
+      map.insert("insert".to_string(), BuiltIn { func: insert });
 
       map
    };
@@ -148,16 +148,30 @@ fn append(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
    }
 }
 
-// fn clear(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
-//    if args.len() != 1 {
-//       return Box::new(Error::new(format!("wrong number of arguments. got={}, want=1", args.len())))
-//    }
-//    let arg: &Box<dyn Object> = args.get(0).unwrap();
+// If the key exists already, returns the old object, otherwise returns true
+// In both instances a new map is created in memory, this is because of mutable borrowing in Rust
+fn insert(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
+   if args.len() != 3 {
+      return Box::new(Error::new(format!("wrong number of arguments. got={}, want=3", args.len())))
+   }
+   let map_to_insert_into: &Box<dyn Object> = args.get(0).unwrap();
 
-//    if let Some(array) = arg.as_any().downcast_ref::<Array>() {
-//       array.elements.clear();
-//       Box::new(Boolean { value: true })
-//    } else {
-//       return Box::new(Error::new(format!("argument to 'clear' must be ARRAY, got {}", arg.r#type())))
-//    }
-// }
+   let key_to_insert: &Box<dyn Object> = args.get(1).unwrap();
+   let value_to_insert: &Box<dyn Object> = args.get(2).unwrap();
+
+   // Here we cannot mutate map because we cannot borrow data in a '&' reference as mutable
+   if let Some(map) = map_to_insert_into.as_any().downcast_ref::<Hash>() {
+      if !key_to_insert.is_hashable() {
+         return Box::new(Error::new(format!("second argument to 'insert' must be hashable, got {}", key_to_insert.r#type())))
+      }
+      let hash_key: HashKey = key_to_insert.downcast_hashable().unwrap().hash_key();
+
+      let hash_pair: HashPair = HashPair { key: key_to_insert.clone(), value: value_to_insert.clone() };
+
+      let mut copied_map: HashMap<HashKey, HashPair> = map.pairs.clone();
+      copied_map.insert(hash_key, hash_pair);
+      Box::new(Hash { pairs: copied_map })
+   } else {
+      return Box::new(Error::new(format!("first argument to 'insert' must be HASH, got {}", map_to_insert_into.r#type())))
+   }
+}
