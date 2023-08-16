@@ -5,7 +5,6 @@ use crate::lexer::Lexer;
 use crate::objects::environment::Environment;
 use crate::parser::Parser;
 use crate::parser::ast::Program;
-use crate::objects::Object;
 use crate::evaluator;
 
 const PROMPT: &str = ">> ";
@@ -37,13 +36,12 @@ pub fn start<R: BufRead, W: Write>(mut reader: R, mut writer: W) {
                continue;
             }
             
-            let evaluated: Option<Box<dyn Object>> = evaluator::eval(Box::new(&program), &mut env);
-            match evaluated {
+            match evaluator::eval(Box::new(&program), &mut env) {
                Some(e) => {
                   write!(writer, "{}\n", e.inspect()).expect("Failed to write Evaluation")
                },
                None => {}
-            }
+            };
          },
          Err(e) => println!("Error reading input: {}", e),
       }
