@@ -15,7 +15,7 @@ lazy_static! {
       map.insert("last".to_string(), BuiltIn { func: last });
       map.insert("rest".to_string(), BuiltIn { func: rest });
       map.insert("push".to_string(), BuiltIn { func: push });
-      map.insert("puts".to_string(), BuiltIn { func: puts });
+      map.insert("print".to_string(), BuiltIn { func: print });
       map.insert("append".to_string(), BuiltIn { func: append });
       map.insert("insert".to_string(), BuiltIn { func: insert });
 
@@ -118,7 +118,7 @@ fn push(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
    }
 }
 
-fn puts(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
+fn print(args: Vec<Box<dyn Object>>) -> Box<dyn Object> {
    for arg in &args {
       println!("{}", arg.inspect())
    }
