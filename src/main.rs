@@ -21,9 +21,10 @@ mod objects;
 mod evaluator;
 mod tests;
 
-use std::{env, fs, path::Path};
+use std::{process, env, fs, path::Path};
 use std::io::{self, Write};
 use color_eyre::{Result, eyre::eyre, owo_colors::OwoColorize};
+use objects::Null;
 
 use crate::lexer::Lexer;
 use crate::objects::environment::Environment;
@@ -63,7 +64,8 @@ fn handle_file_path(path_str: String) -> Result<()> {
          }
          
          let file_content: String = fs::read_to_string(path)?;
-         eval_mky_file(file_content)?;
+         println!();
+         eval_mky_file(file_content)?
       }
       None => return Err(eyre!("File extension could not be read for path {}.", path.display()))
    }
@@ -81,15 +83,21 @@ fn eval_mky_file(file_content: String) -> Result<()> {
    };
    if !parser.errors().is_empty() {
       print_parser_errors(&parser.errors());
-      // Should quit here
+      process::exit(0)
    }
    
    match evaluator::eval(Box::new(&program), &mut env) {
       Some(e) => {
-         
+         // Maybe introduce a special object that is returned when the evaluation is without error and finished
+         if e.as_any().is::<Null>() {
+            eprintln!("\n{}", "Process exited successfully.".green().bold())
+         } else {
+            eprintln!("\n{:?}", e.red().bold())
+         }
       },
-      None => {}
+      None => eprintln!("\n{}", "Process terminated, error in source code".red().bold())
    }
+
    Ok(())
 }
 
