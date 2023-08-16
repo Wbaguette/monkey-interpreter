@@ -1,0 +1,24 @@
+let raptor = [1, "foo", "baz", "bar", 10, true];
+print(len(raptor));
+let a = raptor[3];
+print(a);
+
+let witch = "Which Witch is Which?"
+let which = push(raptor, witch);
+print(which);
+
+let krug = [50, false, "utopia", "hillside", 75];
+let baron = append(which, krug);
+
+print(baron);
+print(len(baron));
+print(baron[9]);
+
+print(first(baron));
+print(last(baron));
+
+let brambleback = rest(baron);
+print(brambleback);
+
+let golem = [3500, "blue moon", "dusk", brambleback];
+print(golem);

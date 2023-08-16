@@ -1,9 +1,0 @@
-let a = 10;
-puts(a);
-
-let foo = fn(x, y) {
-   return x + y;
-}
-
-let b = foo(10, 5);
-puts(b)

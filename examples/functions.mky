@@ -1,0 +1,36 @@
+print( fn(a) { return a - 17 } (18) );
+
+
+
+let add = fn(x, y) { 
+   return x + y;
+};
+
+let sum = add(43, 32);
+print(sum);
+
+let add_condition = fn(x, y) { 
+   if (x == y) { 
+      return x * 2;
+   } else {
+      return x + y;
+   }
+};
+
+let sum_if = add_condition(10, 10);
+print(sum_if);
+let sum_else = add_condition(10, 5);
+print(sum_else);
+
+let fns = {"Add": add};
+print(fns["Add"](50, 50));
+
+
+
+let newAdder = fn(x) {
+   return fn(y) { x + y };
+};
+
+let addTwo = newAdder(2);
+let baz = addTwo(2); 
+print(baz);

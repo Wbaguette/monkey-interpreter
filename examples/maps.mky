@@ -1,0 +1,29 @@
+let prices = {"Apple": 10, "Banana": 8, "Peach": 12, "Happiness": "Priceless"};
+print(prices);
+let apple_price = prices["Apple"];
+print(apple_price);
+
+let four_apples_price = prices["Apple"] * 4;
+print(four_apples_price);
+
+let new_prices = insert(prices, "Cherry", 15);
+print(new_prices);
+let cherry_price = new_prices["Cherry"];
+print(cherry_price);
+
+let pie_prices = {"Apple": 30, "Cherry": 40, "Peach": 33};
+let store = insert(prices, "Pie Prices", pie_prices);
+print(store);
+print(store["Pie Prices"]["Peach"]);
+
+
+
+let JSON = { 
+            "id_num": 13148543, 
+            "age": 19 + 1, 
+            "occupation": "Student",
+            "asleep": true,
+            "classes": ["Diff Eq", "Intro to AI", "Database Systems", "Operating Systems Concepts", "Programming Lang Concepts"]
+            };
+print(JSON);
+print(JSON["classes"][4]);
