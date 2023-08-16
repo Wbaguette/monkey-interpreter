@@ -49,12 +49,14 @@ What I want to add:
 Notice that the elements in arrays in Monkey can be of a different 'type'. It is wrong to call them 'types', they are just trait objects of the trait "Object" (src/objects/mod.rs). 
 In Rust, in order to call .sort() on a vector of type T, then T must have the following traits implemented: Ord, PartialOrd, Eq, PartialEq. 
 Normally I would be able to use the derive macro as such:
+<pre>
 ```rust
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
 pub struct Integer {
   pub value: i64,
 }
 ```
+</pre>
 But I cannot do this on every struct implementing the Object trait because some structs have fields whose types cannot derive these traits 
 Take for the example the implementation of a Function object:
 ```rust
