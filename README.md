@@ -35,19 +35,23 @@ Or a missing ASSIGN "=" in a let statement:
 </pre>
 
 ### TODOs
-Although this interpreter already mimics all the functionality of the Go version in the book, I decided to add a little more. 
+Although this interpreter already mimics all the functionality of the Go version in the book, I decided that I want to add a little more. 
 Believe it or not, it is actually pretty easy to add new features like new built in functions or a new mathematical operator. 
 TL;DR  The interpreter uses Pratt Parsing (a version of the Recursive Descent Parsing algorithm), which makes it super easy to add new features.
 
 What I want to add: 
 
-"sort" built in function => Use it like so
+"sort" built in function which would be used like so:
 <pre>
   let foo = [1, "bar", true, false, "baz", 32];
   let sorted_foo = sort(foo);
 </pre>
-Notice that arrays in Monkey can have multiple 'types' within them. It is wrong to call them 'types', they are just trait objects of the trait "Object" (src/objects/mod.rs). 
-In Rust, in order to call .sort() on a Vec<T>, then T must have the following traits implemented: Ord, PartialOrd, Eq, PartialEq.
+Notice that the elements in arrays in Monkey can be of a different 'type'. It is wrong to call them 'types', they are just trait objects of the trait "Object" (src/objects/mod.rs). 
+In Rust, in order to call .sort() on a 
+```rust
+Vec<T>
+```
+then T must have the following traits implemented: Ord, PartialOrd, Eq, PartialEq.
 Under the hood, this what Monkey's array looks like: 
 ```rust
 #[derive(Clone, Debug)] 
