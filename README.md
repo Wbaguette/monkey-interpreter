@@ -80,7 +80,7 @@ pub struct Array {
 As you can see, the elements of an array are a vector of Object trait objects, meaning that I need to explicity implement the necessary traits for "dyn Object" because I cannot use
 derive macros.
 
-I still need to think of a reasonable ordering scheme in case we want to call sort() on an Array with every differeny trait object of Object. 
+I still need to think of a reasonable ordering scheme in case we want to call sort() on an Array with every different trait object of Object. 
 Example: How does one sort a function definition? In Monkey a function definition can be an element in an array. 
 
 As for other features, I am sure an idea will pop into my head and I will attempt to add it in.
