@@ -1,0 +1,23 @@
+let a_string = "Black cats";
+let b_string = a_string + " are a sign of bad luck.";
+print(b_string);
+print(len(b_string));
+print(b_string + " However, some people do not think so.");
+
+
+
+let a = 40;
+let b = 4;
+let operations = [a + b, a - b, a * b, a / b];
+print(operations);
+
+let c = 3;
+let truncation_happens_here = a / c;
+print(truncation_happens_here);
+
+
+
+let T = true;
+let F = false;
+if (!!!!!!!!!!!!T) { print("Thats a lot of BANG operators."); }
+if (!!!!!!!!!!!F) { print("Thats one less BANG operator than before."); }
