@@ -47,7 +47,7 @@ What I want to add:
   let sorted_foo = sort(foo);
 </pre>
 
-I still need to think of a reasonable ordering scheme for Monkey's objects, as elements in a Monkey array can be of different type. 
-For example, how does one sort a function definition? In Monkey a function definition can be an element in an array and therefore needs an ordering.
+I still need to think of a reasonable ordering scheme for Monkey's objects, as elements in a Monkey array can be of a different type. 
+For example, how does one sort a function definition? In Monkey a function definition can be an element in an array and therefore needs a way to order itself.
 
 As for other features, I am sure ideas will pop into my head and I will attempt to implement them.
