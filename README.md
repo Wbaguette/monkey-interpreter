@@ -36,7 +36,7 @@ Or a missing ASSIGN "=" in a let statement:
 
 ### TODOs
 Although this interpreter already mimics all the functionality of the Go version in the book, I decided that I want to add a little more. 
-Believe it or not, it is actually pretty easy to add new features like new built in functions or a new mathematical operator. 
+It is relatively easy to add new features like a new built in function or a new mathematical operator. 
 TL;DR  The interpreter uses Pratt Parsing (a version of the Recursive Descent Parsing algorithm), which makes it super easy to add new features.
 
 What I want to add: 
@@ -46,41 +46,8 @@ What I want to add:
   let foo = [1, "bar", true, false, "baz", 32];
   let sorted_foo = sort(foo);
 </pre>
-Notice that the elements in arrays in Monkey can be of a different 'type'. It is wrong to call them 'types', they are just trait objects of the trait "Object" (src/objects/mod.rs). 
-In Rust, in order to call .sort() on a vector of type T, then T must have the following traits implemented: Ord, PartialOrd, Eq, PartialEq. 
-Normally I would be able to use the derive macro as such:
-```rust
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
-pub struct Integer {
-  pub value: i64,
-}
-```
 
-But I cannot do this on every struct implementing the Object trait because some structs have fields whose types cannot derive these traits 
-Take for the example the implementation of a Function object:
-```rust
-#[derive(Clone, Debug)] 
-pub struct Function {
-   pub params: Option<Vec<Identifier>>,     
-   pub body: Option<BlockStatement>,
-   pub env: Environment,
-}
-impl Object for Function { ... }
-```
+I still need to think of a reasonable ordering scheme for Monkey's objects, as elements in a Monkey array can be of different type. 
+For example, how does one sort a function definition? In Monkey a function definition can be an element in an array and therefore needs an ordering.
 
-
-
-Under the hood, this what Monkey's Array looks like: 
-```rust
-#[derive(Clone, Debug)] 
-pub struct Array {
-   pub elements: Vec<Box<dyn Object>>,
-}
-```
-As you can see, the elements of an array are a vector of Object trait objects, meaning that I need to explicity implement the necessary traits for "dyn Object" because I cannot use
-derive macros.
-
-I still need to think of a reasonable ordering scheme in case we want to call sort() on an Array with every different trait object of Object. 
-Example: How does one sort a function definition? In Monkey a function definition can be an element in an array. 
-
-As for other features, I am sure an idea will pop into my head and I will attempt to add it in.
+As for other features, I am sure ideas will pop into my head and I will attempt to implement them.
