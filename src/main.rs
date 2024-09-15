@@ -121,25 +121,3 @@ fn start_repl() -> Result<()> {
    repl::start(reader, writer);
    Ok(())
 }
-
-
-// C game engine using SDL2 and OpenGL for a tower defense game (WIP)
-// Interpreter in Rust for a mock programming language called "Monkey"   (Types, Arrays, HashMaps, Array and HashMap indexing, Functions, Closures)
-// 8086 Assembly : Bloons tower defense 
-// Java : SpUI     Java app using JavaFX using Spotify's web api to give users more features (top artists, top songs, true playlist shuffler)
-
-
-
-
-// About me:
-// My name is Jean-Pierre, but most people call me JP. I am a rising senior in Computer Science graduating in May of 2025. I've been programming for 3 and a half years. I am mainly 
-// interested in embedded systems, networks, machine learning, and 
-
-
-// How do my projects relate to the job? Make me qualified for the job?
-// Database Systems Class : Used AWS to make a database for a project and queried the database using MySQL. 
-// All of my projects have made me a more knowledgeable, capable, and confident programmer 
-
-// What do I hope to gain from this internship?
-// Mention data security and networks as  something I am really interested in 
-// skill development, industry experience, professional growth, networking, or contributing to meaningful projects.
