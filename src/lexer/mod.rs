@@ -100,8 +100,7 @@ impl Lexer {
                let ch: char = self.ch;
                self.read_char();
                let literal: String = ch.to_string() + &self.ch.to_string();
-               Token::new(TokenType::EQ, literal.as_str()
-            )
+               Token::new(TokenType::EQ, literal.as_str())
             } else {
                Token::new(TokenType::ASSIGN, "=")
             }
